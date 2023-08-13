@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="static/css/main.css">
+    <title>Index book</title>
+</head>
+<body>
+<ul>
+    <li><a href="page1.html">page1</a></li>
+    <li><a href="page2.html">page2</a></li>
+    <li><a href="page3.html">page3</a></li>
+    <li><a href="page4.html">page4</a></li>
+    <li><a href="page5.html">page5</a></li>
+    <li><a href="page6.html">page6</a></li>
+    <li><a href="page7.html">page7</a></li>
+    <li><a href="page8.html">page8</a></li>
+    <li><a href="page9.html">page9</a></li>
+    <li><a href="page10.html">page10</a></li>
+</ul>
+<p>Contents<br>
+    1. Introduction<br>
+    2. Foundations<br>
+    2.1. Installing Go<br>
+    2.2. Project Setup and Enabling Modules<br>
+    2.3. Web Application Basics<br>
+    2.4. Routing Requests<br>
+    2.5. Customizing HTTP Headers<br>
+    2.6. URL Query Strings<br>
+    2.7. Project Structure and Organization<br>
+    2.8. HTML Templating and Inheritance<br>
+    2.9. Serving Static Files<br>
+    2.10. The http.Handler Interface<br>
+    3. Configuration and Error Handling<br>
+    3.1. Managing Configuration Settings<br>
+    3.2. Leveled Logging<br>
+    3.3. Dependency Injection<br>
+    3.4. Centralized Error Handling<br>
+    3.5. Isolating the Application Routes<br>
+    4. Database-Driven Responses<br>
+    4.1. Setting Up MySQL<br>
+    4.2. Installing a Database Driver<br>
+    4.3. Creating a Database Connection Pool<br>
+    4.4. Designing a Database Model<br>
+    4.5. Executing SQL Statements<br>
+    4.6. Single-record SQL Queries<br>
+    4.7. Multiple-record SQL Queries<br>
+    4.8. Transactions and Other Details<br>
+    5. Dynamic HTML Templates<br>
+    5.1. Displaying Dynamic Data<br>
+    5.2. Template Actions and Functions<br>
+    5.3. Caching Templates<br>
+    5.4. Catching Runtime Errors<br>
+    5.5. Common Dynamic Data<br>
+    5.6. Custom Template Functions<br>
+    6. Middleware<br>
+    6.1. How Middleware Works<br>
+    6.2. Setting Security Headers<br>
+    6.3. Request Logging<br>
+    6.4. Panic Recovery<br>
+    6.5. Composable Middleware Chains<br>
+    7. RESTful Routing<br>
+    7.1. Installing a Router<br>
+    7.2. Implementing RESTful Routes<br>
+    8. Processing Forms<br>
+    8.1. Setting Up a Form<br>
+    8.2. Parsing Form Data<br>
+    8.3. Data Validation<br>
+    8.4. Scaling Data Validation<br>
+    9. Stateful HTTP<br>
+    9.1. Installing a Session Manager<br>
+    9.2. Setting Up the Session Manager<br>
+    9.3. Working with Session Data<br>
+    10. Security Improvements<br>
+    10.1. Generating a Self-Signed TLS Certificate<br>
+    10.2. Running a HTTPS Server<br>
+    10.3. Configuring HTTPS Settings<br>
+    10.4. Connection Timeouts<br>
+    11. User Authentication<br>
+    11.1. Routes Setup<br>
+    11.2. Creating a Users Model<br>
+    11.3. User Signup and Password Encryption<br>
+    11.4. User Login<br>
+    11.5. User Logout<br>
+    11.6. User Authorization<br>
+    11.7. CSRF Protection<br>
+    12. Using Request Context<br>
+    12.1. How Request Context Works<br>
+    12.2. Request Context for Authentication/Authorization<br>
+    13. Testing<br>
+    13.1. Unit Testing and Sub-Tests<br>
+    13.2. Testing HTTP Handlers<br>
+    13.3. End-To-End Testing<br>
+    13.4. Mocking Dependencies<br>
+    13.5. Testing HTML Forms<br>
+    13.6. Integration Testing<br>
+    13.7. Profiling Test Coverage<br>
+    14. Conclusion<br>
+    15. Appendices<br>
+    15.1. How HTTPS Works<br>
+    15.2. Further Reading and Useful Links<br>
+    16. Guided Exercises<br>
+    16.1. Add an About Page to the Application<br>
+    16.2. Test the CreateSnippetForm Handler<br>
+    16.3. Add a User Profile Page to the Application<br>
+    16.4. Implement a Change Password Feature<br>
+    16.5. Redirect User Appropriately after Login<br>
+    16.6. Add a Debug Mode</p>
+    <p>Содержание<br>
+        1. Введение<br>
+        2. Основы<br>
+        2.1. Установка Go<br>
+        2.2. Настройка проекта и включение модулей<br>
+        2.3. Основы веб-приложений<br>
+        2.4. Маршрутизация запросов<br>
+        2.5. Настройка заголовков HTTP<br>
+        2.6. Строки запроса URL<br>
+        2.7. Структура и организация проекта<br>
+        2.8. Шаблоны HTML и наследование<br>
+        2.9. Обслуживание статических файлов<br>
+        2.10. Интерфейс http.Handler<br>
+        3. Настройка и обработка ошибок<br>
+        3.1. Управление параметрами конфигурации<br>
+        3.2. Уровневое ведение журнала<br>
+        3.3. Внедрение зависимостей<br>
+        3.4. Централизованная обработка ошибок<br>
+        3.5. Изоляция маршрутов приложений<br>
+        4. Ответы, управляемые базой данных<br>
+        4.1. Настройка MySQL<br>
+        4.2. Установка драйвера базы данных<br>
+        4.3. Создание пула соединений с базой данных<br>
+        4.4. Проектирование модели базы данных<br>
+        4.5. Выполнение операторов SQL<br>
+        4.6. SQL-запросы с одной записью<br>
+        4.7. SQL-запросы с несколькими записями<br>
+        4.8. Транзакции и другие сведения<br>
+        5. Динамические HTML-шаблоны<br>
+        5.1. Отображение динамических данных<br>
+        5.2. Действия и функции шаблона<br>
+        5.3. Кэширование шаблонов<br>
+        5.4. Отлов ошибок во время выполнения<br>
+        5.5. Общие динамические данные<br>
+        5.6. Пользовательские функции шаблона<br>
+        6. Промежуточное ПО<br>
+        6.1. Как работает ПО промежуточного слоя<br>
+        6.2. Настройка заголовков безопасности<br>
+        6.3. Регистрация запросов<br>
+        6.4. Паническое восстановление<br>
+        6.5. Составные цепочки промежуточного программного обеспечения<br>
+        7. RESTful-маршрутизация<br>
+        7.1. Установка маршрутизатора<br>
+        7.2. Реализация RESTful-маршрутов<br>
+        8. Обработка форм<br>
+        8.1. Настройка формы<br>
+        8.2. Разбор данных формы<br>
+        8.3. Проверка данных<br>
+        8.4. Масштабирование проверки данных<br>
+        9. HTTP с отслеживанием состояния<br>
+        9.1. Установка диспетчера сеансов<br>
+        9.2. Настройка диспетчера сеансов<br>
+        9.3. Работа с данными сеанса<br>
+        10. Улучшения безопасности<br>
+        10.1. Создание самоподписанного сертификата TLS<br>
+        10.2. Запуск HTTPS-сервера<br>
+        10.3. Настройка параметров HTTPS<br>
+        10.4. Время ожидания соединения<br>
+        11. Аутентификация пользователя<br>
+        11.1. Настройка маршрутов<br>
+        11.2. Создание модели пользователей<br>
+        11.3. Регистрация пользователя и шифрование пароля<br>
+        11.4. Логин пользователя<br>
+        11.5. Выход пользователя<br>
+        11.6. Авторизация пользователя<br>
+        11.7. Защита от CSRF<br>
+        12. Использование контекста запроса<br>
+        12.1. Как работает контекст запроса<br>
+        12.2. Контекст запроса для аутентификации/авторизации<br>
+        13. Тестирование<br>
+        13.1. Модульное тестирование и подтесты<br>
+        13.2. Тестирование обработчиков HTTP<br>
+        13.3. Сквозное тестирование<br>
+        13.4. Имитация зависимостей<br>
+        13.5. Тестирование HTML-форм<br>
+        13.6. Интеграционное тестирование<br>
+        13.7. Профилирование тестового покрытия<br>
+        14. Заключение<br>
+        15. Приложения<br>
+        15.1. Как работает HTTPS<br>
+        15.2. Дополнительная литература и полезные ссылки<br>
+        16. Упражнения с пошаговыми инструкциями<br>
+        16.1. Добавить страницу «О программе» в приложение<br>
+        16.2. Протестируйте обработчик CreateSnippetForm<br>
+        16.3. Добавить страницу профиля пользователя в приложение<br>
+        16.4. Внедрение функции смены пароля<br>
+        16.5. Соответствующее перенаправление пользователя после входа в систему<br>
+        16.6. Добавить режим отладки</p>
+</body>
+</html>
