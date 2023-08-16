@@ -7,7 +7,7 @@
     <title>Page 3</title>
 </head>
 <body>
-    <h1>Конфигурация и обработка ошибок</h1>
+    <h1>Глава 3. Конфигурация и обработка ошибок</h1>
 <p>В этом разделе книги мы собираемся заняться домашним хозяйством. На самом деле мы не будем добавлять
     много новых функций в наше приложение, а вместо этого сосредоточимся на внесении улучшений
     , которые облегчат управление по мере его роста.</p>
@@ -23,7 +23,7 @@
     <li>Централизованная обработка ошибок, чтобы вам не приходилось повторяться при написании кода.
     </li>
 </ul>
-<h2>Управление параметрами конфигурации</h2>
+<h2>Глава 3.1. Управление параметрами конфигурации</h2>
 <p>Файл main.go нашего веб-приложения в настоящее время содержит несколько жестко запрограммированных
     параметров конфигурации:</p>
 <ul>
@@ -38,7 +38,7 @@
 </p>
 <p>В этой главе мы начнем улучшать это и сделаем сетевой адрес нашего сервера
     настраиваемым во время выполнения.</p>
-<h2>Флаги командной строки</h2>
+<h3>Флаги командной строки</h3>
     <p>В Go распространенный и идиоматический способ управления параметрами конфигурации — использование флагов командной строки при запуске приложения. Например:</p>
 <pre><code>$ go run ./cmd/web -addr=":80"</code></pre>
 <p>Самый простой способ принять и проанализировать флаг командной строки из вашего приложения — это использовать
@@ -59,15 +59,16 @@
     "net/http"
     )
     func main() {
-    // Define a new command-line flag with the name 'addr', a default value of ":4000"
-    // and some short help text explaining what the flag controls. The value of the
-    // flag will be stored in the addr variable at runtime.
+    // Определяем новый флаг командной строки с именем 'addr', значением по умолчанию ":4000"
+    // и небольшим справочным текстом, объясняющим, что контролирует этот флаг. Значение
+    // флага будет сохранено в переменной addr во время выполнения.
     addr := flag.String("addr", ":4000", "HTTP network address")
-    // Importantly, we use the flag.Parse() function to parse the command-line flag.
-    // This reads in the command-line flag value and assigns it to the addr
-    // variable. You need to call this *before* you use the addr variable
-    // otherwise it will always contain the default value of ":4000". If any errors are
-    // encountered during parsing the application will be terminated.
+    // Важно, что мы используем функцию flag.Parse() для разбора флага командной строки.
+    // Это считывает значение флага командной строки и присваивает его
+    // переменной addr. Вам нужно вызвать это *перед* использованием переменной addr
+    // иначе она всегда будет содержать значение по умолчанию ":4000". 
+    // Если во время синтаксического анализа обнаружатся какие-либо ошибки,
+    // приложение будет закрыто.
     flag.Parse()
     mux := http.NewServeMux()
     mux.HandleFunc("/", home)
@@ -75,10 +76,10 @@
     mux.HandleFunc("/snippet/create", createSnippet)
     fileServer := http.FileServer(http.Dir("./ui/static/"))
     mux.Handle("/static/", http.StripPrefix("/static", fileServer))
-    // The value returned from the flag.String() function is a pointer to the flag
-    // value, not the value itself. So we need to dereference the pointer (i.e.
-    // prefix it with the * symbol) before using it. Note that we're using the
-    // log.Printf() function to interpolate the address with the log message.
+    // Значение, возвращаемое функцией flag.String(), является указателем на
+    // значение флага, а не самим значением. Поэтому нам нужно разыменовать указатель (т. е.
+    // поставить перед ним символ *) перед его использованием. Обратите внимание, что мы используем
+    // функцию log.Printf() для интерполяции адреса с сообщением журнала.
     log.Printf("Starting server on %s", *addr)
     err := http.ListenAndServe(*addr, mux)
     log.Fatal(err)
@@ -87,10 +88,10 @@
     , что сервер теперь прослушивает любой указанный вами адрес, например:</p>
 <pre><code>$ go run ./cmd/web -addr=":9999"
     2023/08/08 19:15:47 Starting server on :9999</code></pre>
-<p class="box-field">Примечание. Порты 0–1023 ограничены и (как правило) могут использоваться только службами с
+<p class="note">Примечание. Порты 0–1023 ограничены и (как правило) могут использоваться только службами с
     привилегиями root. Если вы попытаетесь использовать один из этих портов, вы должны получить
     сообщение об ошибке привязки: разрешение запрещено при запуске.</p>
-<h2>Значения по умолчанию</h2>
+<h3>Значения по умолчанию</h3>
 <p>Флаги командной строки совершенно необязательны. Например, если вы запустите приложение без
     флага -addr, сервер вернется к прослушиванию по адресу: 4000 (это
     значение по умолчанию, которое мы указали).</p>
@@ -101,7 +102,7 @@
     нравится использовать значения по умолчанию, которые имеют смысл для моей среды разработки, потому что это экономит
     время и трудозатраты при создании приложения. Но ЮММВ. Вместо этого вы можете предпочесть более безопасный
     подход к установке значений по умолчанию для вашей производственной среды.</p>
-<h2>Преобразования типов</h2>
+<h3>Преобразования типов</h3>
 <p>В приведенном выше коде мы использовали функцию flag.String() для определения флага командной строки.
     Преимущество этого заключается в преобразовании любого значения, которое пользователь предоставляет во время выполнения, в строковый
     тип. Если значение не может быть преобразовано в строку, приложение регистрирует ошибку и
@@ -110,7 +111,7 @@
     flag.Float64(). Они работают точно так же, как flag.String(), за исключением того, что они
     автоматически преобразуют значение флага командной строки в соответствующий тип.
 </p>
-<h2>Автоматизированная справка</h2>
+<h3>Автоматизированная справка</h3>
 <p>Еще одна замечательная функция заключается в том, что вы можете использовать флаг -help для отображения всех доступных флагов командной строки для приложения и сопровождающего их текста справки. Попробуйте:</p>
 <pre><code>$ go run ./cmd/web -help
     Usage of /tmp/go-build786121279/b001/exe/handlers:
@@ -120,7 +121,7 @@
     управления параметрами конфигурации нашего приложения во время выполнения, а также получили
     явный и документированный интерфейс между нашим приложением и его рабочей конфигурацией.
 </p>
-<h2>Дополнительная информация</h2>
+<h3>Дополнительная информация</h3>
 <h3>Переменные среды</h3>
 <p>Если вы уже создавали и развертывали веб-приложения, вы, вероятно, думаете
     о переменных среды? Конечно, хранить
@@ -143,13 +144,13 @@
     $ go run ./cmd/web -addr=$SNIPPETBOX_ADDR
     2023/08/08 19:45:29 Starting server on :9999</code></pre>
 
-<h2>Логические флаги</h2>    
+<h3>Логические флаги</h3>    
 <p>Для флагов, определенных с помощью flag.Bool(), пропуск значения аналогичен написанию -flag=true. Следующие
  две команды эквивалентны:</p>
  <pre><code>$ go run example.go -flag=true
     $ go run example.go -flag</code></pre>   
  <p>Вы должны явно использовать -flag=false, если хотите установить значение логического флага в false.</p>   
-<h2>Существующие переменные</h2>
+<h3>Существующие переменные</h3>
 <p>Можно преобразовать значения флагов командной строки в адреса памяти уже существующих переменных, используя функции
     flag.StringVar(), flag.IntVar(), flag.BoolVar() и другие .
     Это может быть полезно, если вы хотите хранить все параметры конфигурации в одной
@@ -164,6 +165,7 @@
     flag.StringVar(&cfg.Addr, "addr", ":4000", "HTTP network address")
     flag.StringVar(&cfg.StaticDir, "static-dir", "./ui/static", "Path to static assets")
     flag.Parse()</code></pre>
+<h2>3.2. Уровневое ведение журнала</h2>
 <p>На данный момент в нашем файле main.go мы выводим сообщения журнала, используя
     функции log.Printf() и log.Fatal().
     Обе эти функции выводят сообщения через стандартный регистратор Go, который по умолчанию
@@ -198,15 +200,15 @@
     func main() {
     addr := flag.String("addr", ":4000", "HTTP network address")
     flag.Parse()
-    // Use log.New() to create a logger for writing information messages. This takes
-    // three parameters: the destination to write the logs to (os.Stdout), a string
-    // prefix for message (INFO followed by a tab), and flags to indicate what
-    // additional information to include (local date and time). Note that the flags
-    // are joined using the bitwise OR operator |.
+    // Используйте log.New() для создания регистратора для записи информационных сообщений. Он принимает
+    // три параметра: место назначения для записи журналов (os.Stdout), строковый
+    // префикс для сообщения (INFO, за которым следует табуляция) и флаги, указывающие, какую
+    // дополнительную информацию включать (локальную дату и время). Обратите внимание, что флаги
+    // соединяются с помощью побитового оператора ИЛИ |.
     infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-    // Create a logger for writing error messages in the same way, but use stderr as
-    // the destination and use the log.Lshortfile flag to include the relevant
-    // file name and line number.
+    // Создайте регистратор для записи сообщений об ошибках таким же образом, но используйте stderr в качестве
+    // адресата и используйте флаг log.Lshortfile для включения соответствующего
+    // имени файла и номера строки.
     errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
     mux := http.NewServeMux()
     mux.HandleFunc("/", home)
@@ -214,7 +216,8 @@
     mux.HandleFunc("/snippet/create", createSnippet)
     fileServer := http.FileServer(http.Dir("./ui/static/"))
     mux.Handle("/static/", http.StripPrefix("/static", fileServer))
-    // Write messages using the two new loggers, instead of the standard logger.
+
+    // Пишите сообщения, используя два новых регистратора вместо стандартного.
     infoLog.Printf("Starting server on %s", *addr)
     err := http.ListenAndServe(*addr, mux)
     errorLog.Fatal(err)
@@ -231,17 +234,17 @@
     exit status 1</code></pre>
 <p>Обратите внимание, что два сообщения имеют разные префиксы, чтобы их можно было легко различить в терминале, а наше сообщение об ошибке также включает имя файла и номер строки (main.go:30), которая вызвала регистратор?</p>
 
-<p class="box-field">Совет. Если вы хотите включить в вывод журнала полный путь к файлу, а не только
+<p class="note">Совет. Если вы хотите включить в вывод журнала полный путь к файлу, а не только
     имя файла, вы можете использовать флаг log.Llongfile вместо log.Lshortfile при создании пользовательского регистратора. Вы также можете заставить свой регистратор использовать дату и время UTC (вместо
     локальных), добавив флаг log.LUTC.</p>
-    <h2>Раздельное ведение журнала</h2>
+    <h3>Раздельное ведение журнала</h3>
     <p>Большим преимуществом ведения журнала ваших сообщений в стандартные потоки (stdout и stderr), как у нас,является то, что ваше приложение и ведение журнала не связаны. Само ваше приложение не связано с маршрутизацией или хранением журналов, и это может упростить управление журналами по-разному в зависимости от среды.</p>
     <p>Во время разработки легко просматривать вывод журнала, поскольку в терминале отображаются стандартные потоки.</p>
     <p>В промежуточных или производственных средах вы можете перенаправить потоки в конечный пункт назначения для просмотра и архивирования. Это место назначения может быть файлами на диске или службой ведения журналов, такой как Splunk. В любом случае конечный пункт назначения журналов может управляться вашим выполнением среды независимо от приложения.
     Например, мы могли бы перенаправить потоки stdout и stderr в файлы на диске при запускеприложения следующим образом:</p>
 <pre><code>$ go run ./cmd/web >>/tmp/info.log 2>>/tmp/error.log</code></pre>
-<p class="box-field">Примечание. Использование двойной стрелки >> добавит существующий файл, а не обрежет его при запуске приложения.</p>
-<h2>Журнал ошибок http.Server</h2>
+<p class="note">Примечание. Использование двойной стрелки >> добавит существующий файл, а не обрежет его при запуске приложения.</p>
+<h3>Журнал ошибок http.Server</h3>
 <p>Есть еще одно изменение, которое нам нужно внести в наше приложение. По умолчанию, если HTTP-
     сервер Go обнаруживает ошибку, он регистрирует ее с помощью стандартного регистратора. Для согласованности было бы
     лучше использовать вместо этого наш новый регистратор errorLog.</p>
@@ -263,10 +266,10 @@
         mux.HandleFunc("/snippet/create", createSnippet)
         fileServer := http.FileServer(http.Dir("./ui/static/"))
         mux.Handle("/static/", http.StripPrefix("/static", fileServer))
-        // Initialize a new http.Server struct. We set the Addr and Handler fields so
-        // that the server uses the same network address and routes as before, and set
-        // the ErrorLog field so that the server now uses the custom errorLog logger in
-        // the event of any problems.
+        // Инициализировать новую структуру http.Server. Мы устанавливаем поля Addr и Handler таким образом,
+        // чтобы сервер использовал те же сетевые адреса и маршруты, что и раньше, и устанавливаем
+        // поле ErrorLog, чтобы сервер теперь использовал настраиваемый регистратор ошибок
+        // при возникновении каких-либо проблем.
         srv := &http.Server{
         Addr: *addr,
         ErrorLog: errorLog,
@@ -278,15 +281,15 @@
         errorLog.Fatal(err)
     }</code>
 </pre>
-<h2>Дополнительная информация</h2>
-<h3>Дополнительные методы журналирования</h3>
+<h3>Дополнительная информация</h3>
+<h4>Дополнительные методы журналирования</h4>
 <p>До сих пор в этой книге мы использовали методы Println(), Printf() и Fatal() для записи
     сообщений журнала, но Go предоставляет ряд других методов,
     с которыми стоит ознакомиться.</p>
 <p>Как правило, вам следует избегать использования вариантов Panic() и Fatal() за пределами
     вашей функции main() — вместо этого рекомендуется возвращать ошибки и использовать только panic или выход
     непосредственно из main().</p>
-<h2>Параллельное ведение журнала</h2>
+<h4>Параллельное ведение журнала</h4>
 <p>Пользовательские регистраторы, созданные с помощью log.New(), защищены от параллелизма. Вы можете совместно использовать один регистратор
     и использовать его в нескольких горутинах и в своих обработчиках, не беспокоясь о
     состоянии гонки.
@@ -295,7 +298,7 @@
     осторожным и убедиться, что базовый метод Write() места назначения также безопасен для
     одновременного использования.
 </p>    
-<h2>Регистрация в файл</h2>
+<h4>Регистрация в файл</h4>
 <p>Как я уже говорил выше, моя общая рекомендация состоит в том, чтобы записывать ваш вывод в стандартные потоки и
     перенаправлять вывод в файл во время выполнения. Но если вы не хотите этого делать, вы всегда можете открыть
     файл в Go и использовать его в качестве места назначения журнала. В качестве грубого примера:
@@ -307,6 +310,443 @@ if err != nil {
 defer f.Close()
 infoLog := log.New(f, "INFO\t", log.Ldate|log.Ltime)
 </code></pre>
+
+<h2>Глава 3.3. Внедрение зависимостей.</h2>
+<p>Есть еще одна проблема с логированием, которую нам нужно решить. Если вы откроете
+    файл handlers.go, вы заметите, что функция домашнего обработчика по-прежнему записывает сообщения об ошибках,
+    используя стандартный регистратор Go, а не регистратор errorLog, который мы хотим использовать.
+</p>
+<pre><code>func home(w http.ResponseWriter, r *http.Request) {
+    ...
+    ts, err := template.ParseFiles(files...)
+    if err != nil {
+    log.Println(err.Error())
+    http.Error(w, "Internal Server Error", 500)
+    return
+    }
+    err = ts.Execute(w, nil)
+    if err != nil {
+    log.Println(err.Error())
+    http.Error(w, "Internal Server Error", 500)
+    }
+}</code></pre>
+<p>Это поднимает хороший вопрос: как мы можем сделать наш новый регистратор errorLog доступным для нашей
+    домашней функции из main()?</p>
+<p>И этот вопрос обобщает дальше. Большинство веб-приложений будут иметь несколько
+    зависимостей, к которым должны иметь доступ их обработчики, такие как пул соединений с базой данных,
+    централизованные обработчики ошибок и кэши шаблонов. На самом деле мы хотим ответить: как
+    мы можем сделать любую зависимость доступной для наших обработчиков?</p>
+<p>Есть несколько разных способов сделать это, самый простой — просто поместить зависимости в
+    глобальные переменные. Но в целом хорошей практикой является внедрение зависимостей в ваши обработчики.
+    Это делает ваш код более явным, менее подверженным ошибкам и более простым для модульного тестирования, чем если бы вы использовали
+    глобальные переменные.</p>
+<p>Для приложений, в которых все ваши обработчики находятся в одном пакете, подобно нашему, аккуратный способ внедрить
+    зависимости — поместить их в пользовательскую структуру приложения, а затем определить
+    функции обработчика как методы для приложения.</p>
+<p>Я продемонстрирую.</p>
+<p>Откройте файл main.go и создайте новую структуру приложения следующим образом:</p>
+
+<pre><code>File: cmd/web/main.go
+    package main
+    import (
+    "flag"
+    "log"
+    "net/http"
+    "os"
+    )
+    // Определяем структуру приложения для хранения зависимостей всего приложения для
+    // веб-приложения. На данный момент мы добавим поля только для двух пользовательских регистраторов,
+    // но мы добавим их по мере выполнения сборки.
+    type application struct {
+        errorLog *log.Logger
+        infoLog *log.Logger
+    }
+    func main() {
+    ...
+}</code></pre>
+<p>А затем в файле handlers.go обновите свои функции-обработчики, чтобы они стали
+    методами структуры приложения…</p>
+<pre><code>File: cmd/web/handlers.go
+    package main
+    import (
+        "fmt"
+        "html/template"
+        "net/http"
+        "strconv"
+    )
+    // Измените сигнатуру домашнего обработчика, чтобы он определялся как метод
+    // *application.
+    func (app *application) home(w http.ResponseWriter, r *http.Request) {
+        if r.URL.Path != "/" {
+            http.NotFound(w, r)
+            return
+        }
+        files := []string{
+            "./ui/html/home.page.tmpl",
+            "./ui/html/base.layout.tmpl",
+            "./ui/html/footer.partial.tmpl",
+        }
+        ts, err := template.ParseFiles(files...)
+        if err != nil {
+            // Поскольку домашняя функция-обработчик теперь является методом для приложения,
+            // она может получить доступ к своим полям, включая регистратор ошибок. Мы запишем
+            // сюда сообщение лога вместо стандартного логгера.
+            app.errorLog.Println(err.Error())
+            http.Error(w, "Internal Server Error", 500)
+            return
+        }
+        err = ts.Execute(w, nil)
+        if err != nil {
+            // Also update the code here to use the error logger from the application
+            // struct.
+            app.errorLog.Println(err.Error())
+            http.Error(w, "Internal Server Error", 500)
+        }
+    }
+    // Измените сигнатуру обработчика showSnippet, чтобы он определялся
+    // как метод для *application.
+    func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
+        id, err := strconv.Atoi(r.URL.Query().Get("id"))
+        if err != nil || id < 1 {
+            http.NotFound(w, r)
+            return
+        }
+        fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
+    }
+    // Измените сигнатуру обработчика createSnippet, чтобы он определялся
+    // как метод для *application.
+    func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodPost {
+            w.Header().Set("Allow", http.MethodPost)
+            http.Error(w, "Method Not Allowed", 405)
+            return
+        }
+        w.Write([]byte("Create a new snippet..."))
+}</code></pre>
+<p>И, наконец, давайте соединим все вместе в нашем файле main.go:</p>
+<pre><code>File: cmd/web/main.go
+    package main
+    import (
+    "flag"
+    "log"
+    "net/http"
+    "os"
+    )
+    type application struct {
+    errorLog *log.Logger
+    infoLog *log.Logger
+    }
+    func main() {
+    addr := flag.String("addr", ":4000", "HTTP network address")
+    flag.Parse()
+    infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+    errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+    // Initialize a new instance of application containing the dependencies.
+    app := &application{
+    errorLog: errorLog,
+    infoLog: infoLog,
+    }
+    // Поменяйте местами объявления маршрута, чтобы использовать методы структуры приложения в качестве
+    // функций-обработчиков.
+    mux := http.NewServeMux()
+    mux.HandleFunc("/", app.home)
+    mux.HandleFunc("/snippet", app.showSnippet)
+    mux.HandleFunc("/snippet/create", app.createSnippet)
+    fileServer := http.FileServer(http.Dir("./ui/static/"))
+    mux.Handle("/static/", http.StripPrefix("/static", fileServer))
+    srv := &http.Server{
+    Addr: *addr,
+    ErrorLog: errorLog,
+    Handler: mux,
+    }
+    infoLog.Printf("Starting server on %s", *addr)
+    err := srv.ListenAndServe()
+    errorLog.Fatal(err)
+}</code></pre>
+
+<p>Я понимаю, что этот подход может показаться немного сложным и запутанным, особенно
+    когда альтернативой является простое создание глобальных переменных регистраторов infoLog и errorLog.
+    Но держись со мной. По мере того, как приложение растет и нашим обработчикам начинает требоваться больше
+    зависимостей, этот шаблон начинает показывать свою ценность.</p>
+
+<h3>Добавление преднамеренной ошибки</h3>
+<p>Давайте попробуем это, быстро добавив преднамеренную ошибку в наше приложение.
+    Откройте терминал и переименуйте ui/html/home.page.tmpl в ui/html/home.page.bak.</p>
+<p>Когда мы запускаем наше приложение и делаем запрос на домашнюю страницу, теперь это должно привести
+    к ошибке, потому что ui/html/home.page.tmpl больше не существует.</p>
+<p>Внесите изменения:</p>
+
+<pre><code>$ cd $HOME/code/snippetbox
+    $ mv ui/html/home.page.tmpl ui/html/home.page.bak</code></pre>
+<p>Затем запустите приложение и сделайте запрос на http://localhost:4000. Вы должны получить
+    HTTP-ответ Internal Server Error в своем браузере и увидеть соответствующее
+    сообщение об ошибке в своем терминале, подобное этому:</p>
+
+<pre><code>$ go run ./cmd/web
+    INFO 2018/08/30 21:28:33 Starting server on :4000
+    ERROR 2018/08/30 21:28:41 handlers.go:25: open ./ui/html/home.page.tmpl: no such file or directory</code></pre>
+
+<p>Обратите внимание, что сообщение журнала теперь имеет префикс ERROR и происходит из строки 25 файла
+    handlers.go? Это хорошо демонстрирует, что наш пользовательский регистратор errorLog передается
+    нашему домашнему обработчику в качестве зависимости и работает, как и ожидалось.</p>
+<p>Пока оставьте преднамеренную ошибку; он понадобится нам в следующей главе.</p>
+
+<h3>Дополнительная информация</h3>
+<h4>Замыкания для внедрения зависимостей</h4>
+<p>Шаблон, который мы используем для внедрения зависимостей, не будет работать, если ваши обработчики распределены
+    по нескольким пакетам. В этом случае альтернативным подходом является создание
+    пакета конфигурации, экспортирующего структуру приложения, и закрытие ваших функций обработчика для
+    формирования замыкания. Очень приблизительно:</p>
+<pre><code>func main() {
+    app := &config.Application{
+    ErrorLog: log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+    }
+    mux.Handle("/", handlers.Home(app))
+}
+func Home(app *config.Application) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        ...
+        ts, err := template.ParseFiles(files...)
+        if err != nil {
+        app.ErrorLog.Println(err.Error())
+        http.Error(w, "Internal Server Error", 500)
+        return
+        }
+    ...
+    }
+}</code></pre>
+
+<h2>Глава 3.4. Централизованная обработка ошибок</h2>
+
+<p>Давайте улучшим наше приложение, переместив часть кода обработки ошибок во вспомогательные
+    методы. Это поможет разделить наши проблемы и не позволит нам повторять код по мере продвижения
+    по сборке.</p>
+<p>Идем дальше и добавляем новый файл helpers.go в каталог cmd/web:</p>
+<pre><code>$ cd $HOME/code/snippetbox
+    $ touch cmd/web/helpers.go</code></pre>
+
+<p>И добавьте следующий код:</p>    
+<pre><code>Файл: cmd/web/helpers.go
+    package main
+    
+    import (
+        "fmt"
+        "net/http"
+        "runtime/debug"
+    )
+    // Помощник serverError записывает сообщение об ошибке и трассировку стека в errorLog,
+    // затем отправляет общий код 500 Внутренняя ошибка сервера, ответ пользователю.
+    func (приложение *приложение) serverError(w http.ResponseWriter, ошибка ошибки) {
+        trace := fmt.Sprintf("%s\n%s", err.Error(), debug.Stack())
+        app.errorLog.Println (trace)
+        http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+    }
+    // Помощник clientError отправляет
+    // пользователю определенный код состояния и соответствующее описание.
+    // Запрос», когда возникает проблема с отправленным пользователем запросом.
+    func (app *application) clientError(w http.ResponseWriter, status int) {
+        http.Error(w, http.StatusText(status), status)
+    }
+    // Для согласованности мы также реализуем хелпер notFound. Это просто 
+    // удобная оболочка для clientError, которая отправляет 
+    // пользователю ответ 404 Not Found 
+    func (app *application) notFound(w http.ResponseWriter) {
+         app.clientError(w, http.StatusNotFound) 
+    }</code></pre>
+
+<p>Здесь не так много нового кода, но он представляет некоторые новые функции
+    , которые стоит обсудить.</p>
+
+<ul>
+    <li>В помощнике serverError() мы используем функцию debug.Stack(), чтобы получить трассировку стека для
+        текущей горутины и добавить ее в сообщение журнала. Возможность видеть
+        путь выполнения приложения через трассировку стека может быть полезна при отладке
+        ошибок.</li>
+    <li>В помощнике clientError() мы используем функцию http.StatusText() для автоматического
+        создания удобного для человека текстового представления данного кода состояния HTTP. Например
+        , http.StatusText(400) вернет строку «Неверный запрос».</li>
+    <li>Мы начали использовать именованные константы пакета net/http для кодов состояния HTTP
+        вместо целых чисел. В помощнике serverError() мы использовали константу
+        http.StatusInternalServerError вместо записи 500, а в помощнике notFound()
+        мы использовали константу http.StatusNotFound вместо записи 404.</li>
+</ul>
+<p>Использование констант состояния — приятный штрих, который помогает сделать ваш код понятным и самодокументируемым, особенно при работе с редко используемыми кодами состояния. Вы можете
+    найти полный список констант кода состояния здесь.</p>
+<p>Как только это будет сделано, вернитесь к файлу handlers.go и обновите его, чтобы использовать новые помощники:
+</p>
+<pre><code>File: cmd/web/handlers.go
+    package main
+    
+    import (
+        "fmt"
+        "html/template"
+        "net/http"
+        "strconv"
+    )
+    func (app *application) home(w http.ResponseWriter, r *http.Request) {
+        if r.URL.Path != "/" {
+            app.notFound(w) // Используем хелпер notFound()
+            return
+        }
+        files := []string{
+        "./ui/html/home.page.tmpl",
+        "./ui/html/base.layout.tmpl",
+        "./ui/html/footer.partial.tmpl",
+        }
+        ts, err := template.ParseFiles(files...)
+        if err != nil {
+            app.serverError(w, err) // Используйте помощник serverError().
+            return
+        }
+        err = ts.Execute(w, nil)
+        if err != nil {
+            app.serverError(w, err) // Используйте помощник serverError().
+        }
+    }
+    func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
+        id, err := strconv.Atoi(r.URL.Query().Get("id"))
+        if err != nil || id < 1 {
+            app.notFound(w) // Используйте помощник notFound().
+            return
+        }
+        fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
+        }
+        func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
+        if r.Method != http.MethodPost {
+            w.Header().Set("Allow", http.MethodPost)
+            app.clientError(w, http.StatusMethodNotAllowed) // Используйте помощник clientError().
+            return
+        }
+        w.Write([]byte("Create a new snippet..."))
+    }</code></pre>
+<p>Когда это будет обновлено, перезапустите приложение и сделайте запрос на
+    http://localhost:4000 в своем браузере.</p>
+<p>Опять же, это должно привести к возникновению нашей (преднамеренной) ошибки, и вы должны увидеть
+    соответствующее сообщение об ошибке и трассировку стека в своем терминале:</p>
+
+<pre><code>$ go run ./cmd/web
+    INFO 2018/08/31 12:04:51 Starting server on :4000
+    ERROR 2018/08/31 12:04:57 helpers.go:14: open ./ui/html/home.page.tmpl: no such file or directory
+    goroutine 5 [running]:
+    runtime/debug.Stack(0xc000073cb0, 0xc00001e2c0, 0x36)
+    /usr/local/go/src/runtime/debug/stack.go:24 +0xa7
+    main.(*application).serverError(0xc000010c40, 0x809040, 0xc0000f00e0, 0x8061c0, 0xc000073cb0)
+    /home/alex/code/snippetbox/cmd/web/helpers.go:14 +0x62
+    main.(*application).home(0xc000010c40, 0x809040, 0xc0000f00e0, 0xc00009e400)
+    /home/alex/code/snippetbox/cmd/web/handlers.go:25 +0x1d2
+    main.(*application).home-fm(0x809040, 0xc0000f00e0, 0xc00009e400)
+    /home/alex/code/snippetbox/cmd/web/routes.go:7 +0x48
+    net/http.HandlerFunc.ServeHTTP(0xc000010c50, 0x809040, 0xc0000f00e0, 0xc00009e400)
+    /usr/local/go/src/net/http/server.go:1964 +0x44
+    net/http.(*ServeMux).ServeHTTP(0xc000072fc0, 0x809040, 0xc0000f00e0, 0xc00009e400)
+    /usr/local/go/src/net/http/server.go:2361 +0x127
+    net/http.serverHandler.ServeHTTP(0xc000075040, 0x809040, 0xc0000f00e0, 0xc00009e400)
+    /usr/local/go/src/net/http/server.go:2741 +0xab
+    net/http.(*conn).serve(0xc00007edc0, 0x8092c0, 0xc00005c2c0)
+    /usr/local/go/src/net/http/server.go:1847 +0x646
+    created by net/http.(*Server).Serve
+    /usr/local/go/src/net/http/server.go:2851 +0x2f5</code></pre>
+<p>Если вы внимательно посмотрите на это, вы заметите небольшую проблему: имя файла и номер строки, о которых сообщается
+    в сообщении журнала, теперь будут helpers.go:14 — потому что это то место, откуда
+    теперь пишется сообщение журнала.</p>
+<p>Что мы хотим сообщить, так это имя файла и номер строки на один шаг назад в трассировке стека,
+    что даст нам более четкое представление о том, откуда на самом деле возникла ошибка.</p>
+<p>Мы можем сделать это, изменив хелпер serverError(), чтобы он использовал функцию Output() нашего регистратора,
+    и установив глубину кадра на 2. Снова откройте файл helpers.go и обновите его следующим образом:</p>
+
+<pre><code>File: cmd/web/helpers.go
+    package main
+    ...
+    func (app *application) serverError(w http.ResponseWriter, err error) {
+    trace := fmt.Sprintf("%s\n%s", err.Error(), debug.Stack())
+    app.errorLog.Output(2, trace)
+    http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+    }
+    ...</code></pre>
+<p>И если вы попробуете сейчас еще раз, то обнаружите, что
+    сообщается соответствующее имя файла и номер строки (handlers.go:25):</p>
+
+<pre><code>$ go run ./cmd/web
+    INFO 2018/08/31 12:45:51 Starting server on :4000
+    ERROR 2018/08/31 12:45:54 handlers.go:25: open ./ui/html/home.page.tmpl: no such file or directory
+    goroutine 19 [running]:
+    runtime/debug.Stack(0xc000087cb0, 0xc000116240, 0x36)
+    /usr/local/go/src/runtime/debug/stack.go:24 +0xa7
+    main.(*application).serverError(0xc000082c00, 0x809040, 0xc0001140e0, 0x8061c0, 0xc000087cb0)
+    /home/alex/code/snippetbox/cmd/web/helpers.go:14 +0x62
+    main.(*application).home(0xc000082c00, 0x809040, 0xc0001140e0, 0xc0000be400)
+    /home/alex/code/snippetbox/cmd/web/handlers.go:25 +0x1d2
+    main.(*application).home-fm(0x809040, 0xc0001140e0, 0xc0000be400)
+    /home/alex/code/snippetbox/cmd/web/routes.go:7 +0x48
+    net/http.HandlerFunc.ServeHTTP(0xc000082c10, 0x809040, 0xc0001140e0, 0xc0000be400)
+    /usr/local/go/src/net/http/server.go:1964 +0x44
+    net/http.(*ServeMux).ServeHTTP(0xc000086fc0, 0x809040, 0xc0001140e0, 0xc0000be400)
+    /usr/local/go/src/net/http/server.go:2361 +0x127
+    net/http.serverHandler.ServeHTTP(0xc000089450, 0x809040, 0xc0001140e0, 0xc0000be400)
+    /usr/local/go/src/net/http/server.go:2741 +0xab
+    net/http.(*conn).serve(0xc00009ed20, 0x8092c0, 0xc000092280)
+    /usr/local/go/src/net/http/server.go:1847 +0x646
+    created by net/http.(*Server).Serve
+    /usr/local/go/src/net/http/server.go:2851 +0x2f5</code></pre>
+<h3>Вернуть преднамеренную ошибку</h3>
+<p>На данный момент нам больше не нужна преднамеренная ошибка, так что продолжайте исправлять ее следующим образом:
+</p>
+<pre><code>$ cd $HOME/code/snippetbox
+    $ mv ui/html/home.page.bak ui/html/home.page.tmpl</code></pre>
+<h2>Глава 3.5. Изоляция маршрутов приложений</h2>
+<p>Пока мы рефакторим наш код, стоит внести еще одно изменение.
+    Наша функция main() начинает немного перегружаться, поэтому, чтобы она оставалась ясной и сфокусированной, я хотел бы
+    переместить объявления маршрутов для приложения в отдельный файл route.go, например
+    так:</p>
+
+<pre><code>$ cd $HOME/code/snippetbox
+    $ touch cmd/web/routes.go</code></pre>
+
+<p></p>    
+<pre><code>File: cmd/web/routes.go
+    package main
+
+    import "net/http"
+    
+    func (app *application) routes() *http.ServeMux {
+        mux := http.NewServeMux()
+        mux.HandleFunc("/", app.home)
+        mux.HandleFunc("/snippet", app.showSnippet)
+        mux.HandleFunc("/snippet/create", app.createSnippet)
+        fileServer := http.FileServer(http.Dir("./ui/static/"))
+        mux.Handle("/static/", http.StripPrefix("/static", fileServer))
+        return mux
+    }</code></pre>
+
+<p>Затем мы можем обновить файл main.go, чтобы использовать его вместо этого:</p>
+<pre><code>Файл: cmd/web/main.go
+    package main
+    ...
+    func main() {
+        addr := flag.String("addr", ":4000", "HTTP network address")
+        flag.Parse()
+        infoLog := log .New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+        errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+        app := &application{
+        errorLog: errorLog,
+        infoLog: infoLog,
+        }
+        srv := &http.Server{
+        Addr: *addr,
+        ErrorLog: errorLog,
+        Handler: app.routes(), // Вызов нового метода app.routes()
+        }
+        infoLog.Printf("Запуск сервера на %s", *addr)
+        err := srv.ListenAndServe()
+        errorLog.Fatal(err)
+    }</code></pre>
+<p>Это немного аккуратнее. Маршруты для нашего приложения теперь изолированы и инкапсулированы
+    в методе app.routes(), а обязанности нашей функции main() ограничены:</p>
+<ul>
+    <li>Aнализом параметров конфигурации времени выполнения для приложения;</li>
+    <li>Установка зависимостей для обработчиков;</li>
+    <li>Запуск HTTP-сервера.</li>
+</ul>
 
 </body>
 </html>
