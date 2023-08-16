@@ -127,7 +127,7 @@
     +----+------------------------+---------------------+
     | 1 | An old silent pond | 2019-09-07 11:46:10 |
     | 2 | Over the wintry forest | 2019-09-07 11:46:10 |
-    | 3 | First autumn morning | 2018-09-14 11:46:11 |
+    | 3 | First autumn morning | 2022-09-14 11:46:11 |
     +----+------------------------+---------------------+
     mysql> DROP TABLE snippets;
     ERROR 1142 (42000): DROP command denied to user 'web'@'localhost' for table 'snippets'</code></pre>
@@ -161,7 +161,7 @@
     начале книги). Вы должны увидеть новую строку require, содержащую путь к пакету и
     точную версию, которая была загружена:</p>
 <pre><code>File: go.mod
-    module alexedwards.net/snippetbox
+    module turamantedwards.net/snippetbox
     go 1.15
     require github.com/go-sql-driver/mysql v1.5.0</code></pre>
 
@@ -325,13 +325,13 @@
     создать соединение без каких-либо ошибок. Если все хорошо, вы должны увидеть обычное
     сообщение Starting server… в журнале:</p>
 <pre><code>$ go run ./cmd/web
-    INFO 2018/09/07 13:54:19 Starting server on :4000</code></pre>
+    INFO 2022/09/07 13:54:19 Starting server on :4000</code></pre>
 <p>Если приложение не запускается и вы получаете сообщение об ошибке «Отказано в доступе...», как показано ниже, проблема, вероятно, связана с вашим DSN. Дважды проверьте правильность имени пользователя и
     пароля, что у пользователей вашей базы данных есть правильные разрешения и что ваш
     экземпляр MySQL использует стандартные настройки.</p>
 
 <pre><code>$ go run ./cmd/web
-    ERROR 2018/09/07 13:55:51 main.go:44: Error 1045: Access denied for user 'web'@'localhost' (using password: YES)
+    ERROR 2022/09/07 13:55:51 main.go:44: Error 1045: Access denied for user 'web'@'localhost' (using password: YES)
     exit status 1</code></pre>
 
    <h2> Chapter 4.4.

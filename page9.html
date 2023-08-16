@@ -483,8 +483,8 @@ infoLog := log.New(f, "INFO\t", log.Ldate|log.Ltime)
     сообщение об ошибке в своем терминале, подобное этому:</p>
 
 <pre><code>$ go run ./cmd/web
-    INFO 2018/08/30 21:28:33 Starting server on :4000
-    ERROR 2018/08/30 21:28:41 handlers.go:25: open ./ui/html/home.page.tmpl: no such file or directory</code></pre>
+    INFO 2022/08/30 21:28:33 Starting server on :4000
+    ERROR 2022/08/30 21:28:41 handlers.go:25: open ./ui/html/home.page.tmpl: no such file or directory</code></pre>
 
 <p>Обратите внимание, что сообщение журнала теперь имеет префикс ERROR и происходит из строки 25 файла
     handlers.go? Это хорошо демонстрирует, что наш пользовательский регистратор errorLog передается
@@ -625,17 +625,17 @@ func Home(app *config.Application) http.HandlerFunc {
     соответствующее сообщение об ошибке и трассировку стека в своем терминале:</p>
 
 <pre><code>$ go run ./cmd/web
-    INFO 2018/08/31 12:04:51 Starting server on :4000
-    ERROR 2018/08/31 12:04:57 helpers.go:14: open ./ui/html/home.page.tmpl: no such file or directory
+    INFO 2022/08/31 12:04:51 Starting server on :4000
+    ERROR 2022/08/31 12:04:57 helpers.go:14: open ./ui/html/home.page.tmpl: no such file or directory
     goroutine 5 [running]:
     runtime/debug.Stack(0xc000073cb0, 0xc00001e2c0, 0x36)
     /usr/local/go/src/runtime/debug/stack.go:24 +0xa7
     main.(*application).serverError(0xc000010c40, 0x809040, 0xc0000f00e0, 0x8061c0, 0xc000073cb0)
-    /home/alex/code/snippetbox/cmd/web/helpers.go:14 +0x62
+    /home/turamant/code/snippetbox/cmd/web/helpers.go:14 +0x62
     main.(*application).home(0xc000010c40, 0x809040, 0xc0000f00e0, 0xc00009e400)
-    /home/alex/code/snippetbox/cmd/web/handlers.go:25 +0x1d2
+    /home/turamant/code/snippetbox/cmd/web/handlers.go:25 +0x1d2
     main.(*application).home-fm(0x809040, 0xc0000f00e0, 0xc00009e400)
-    /home/alex/code/snippetbox/cmd/web/routes.go:7 +0x48
+    /home/turamant/code/snippetbox/cmd/web/routes.go:7 +0x48
     net/http.HandlerFunc.ServeHTTP(0xc000010c50, 0x809040, 0xc0000f00e0, 0xc00009e400)
     /usr/local/go/src/net/http/server.go:1964 +0x44
     net/http.(*ServeMux).ServeHTTP(0xc000072fc0, 0x809040, 0xc0000f00e0, 0xc00009e400)
@@ -667,17 +667,17 @@ func Home(app *config.Application) http.HandlerFunc {
     сообщается соответствующее имя файла и номер строки (handlers.go:25):</p>
 
 <pre><code>$ go run ./cmd/web
-    INFO 2018/08/31 12:45:51 Starting server on :4000
-    ERROR 2018/08/31 12:45:54 handlers.go:25: open ./ui/html/home.page.tmpl: no such file or directory
+    INFO 2022/08/31 12:45:51 Starting server on :4000
+    ERROR 2022/08/31 12:45:54 handlers.go:25: open ./ui/html/home.page.tmpl: no such file or directory
     goroutine 19 [running]:
     runtime/debug.Stack(0xc000087cb0, 0xc000116240, 0x36)
     /usr/local/go/src/runtime/debug/stack.go:24 +0xa7
     main.(*application).serverError(0xc000082c00, 0x809040, 0xc0001140e0, 0x8061c0, 0xc000087cb0)
-    /home/alex/code/snippetbox/cmd/web/helpers.go:14 +0x62
+    /home/turamant/code/snippetbox/cmd/web/helpers.go:14 +0x62
     main.(*application).home(0xc000082c00, 0x809040, 0xc0001140e0, 0xc0000be400)
-    /home/alex/code/snippetbox/cmd/web/handlers.go:25 +0x1d2
+    /home/turamant/code/snippetbox/cmd/web/handlers.go:25 +0x1d2
     main.(*application).home-fm(0x809040, 0xc0001140e0, 0xc0000be400)
-    /home/alex/code/snippetbox/cmd/web/routes.go:7 +0x48
+    /home/turamant/code/snippetbox/cmd/web/routes.go:7 +0x48
     net/http.HandlerFunc.ServeHTTP(0xc000082c10, 0x809040, 0xc0001140e0, 0xc0000be400)
     /usr/local/go/src/net/http/server.go:1964 +0x44
     net/http.(*ServeMux).ServeHTTP(0xc000086fc0, 0x809040, 0xc0001140e0, 0xc0000be400)
