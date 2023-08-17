@@ -738,10 +738,377 @@ map[string]*template.Template для кэширования проанализи
     }
     ...</code></pre>
 
-<h2>Chapter 5.4.
-    Catching Runtime Errors</h2>
-    ......................
-    .........
+<h2>Глава 5.4. Отлов ошибок во время выполнения</h2>
+<p>Как только мы начинаем добавлять динамическое поведение в наши HTML-шаблоны, возникает риск
+    возникновения ошибок во время выполнения.</p>
+<p>Давайте добавим преднамеренную ошибку в шаблон show.page.tmpl и посмотрим, что произойдет:
+</p>
+
+<pre><code>File: ui/html/show.page.tmpl
+    
+    {{template "base" .}}
+    
+    {{define "title"}}Snippet #{{.Snippet.ID}}{{end}}
+    
+    {{define "main"}}
+        {{with .Snippet}}
+        &lt;div class='snippet'&gt;
+            &lt;div class='metadata'&gt;
+                &lt;strong&gt;{{.Title}}&lt;/strong&gt;
+                &lt;span&gt;#{{.ID}}&lt;/span&gt;
+            &lt;/div&gt;
+            {{len nil}} &lt;!-- Deliberate error --&gt;
+            &lt;pre&gt;&lt;code&gt;{{.Content}}&lt;/code&gt;&lt;/pre&gt;
+            &lt;div class='metadata'&gt;
+                &lt;time&gt;Created: {{.Created}}&lt;/time&gt;
+                &lt;time&gt;Expires: {{.Expires}}&lt;/time&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        {{end}}
+    {{end}}</code></pre>
+
+<p>
+    В этой разметке выше мы добавили строку {{len nil}}, которая должна генерировать ошибку во
+    время выполнения, потому что в Go значение nil не имеет длины.</p>
+<p>Попробуйте запустить приложение сейчас. Вы обнаружите, что все по-прежнему компилируется нормально:
+</p>
+<pre><code class="terminal">$ go run ./cmd/web
+    INFO 2018/09/09 11:50:25 Starting server on :4000</code></pre>
+
+<p>Но если вы используете curl для запроса http://localhost:4000/snippet?id=1, вы получите ответ,
+    который выглядит примерно так. ХОРОШО:</p>
+<pre><code class="terminal">$ curl -i http://localhost:4000/snippet?id=1
+    HTTP/1.1 200 OK
+    Date: Sun, 09 Sep 2018 09:50:27 GMT
+    Content-Length: 615
+    Content-Type: text/html; charset=utf-8
+    &lt;!doctype html&gt;
+    &lt;html lang='en'&gt;
+    &lt;head&gt;
+    &lt;meta charset='utf-8'&gt;
+    &lt;title&gt;Snippet #1 - Snippetbox&lt;/title&gt;
+    &lt;link rel='stylesheet' href='/static/css/main.css'&gt;
+    &lt;link rel='shortcut icon' href='/static/img/favicon.ico' type='image/x-icon'&gt;
+    &lt;link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700'&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+    &lt;header&gt;
+    &lt;h1&gt;&lt;a href='/'&gt;Snippetbox&lt;/a&gt;&lt;/h1&gt;
+    &lt;/header&gt;
+    &lt;nav&gt;
+    &lt;a href='/'&gt;Home&lt;/a&gt;
+    &lt;/nav&gt;
+    &lt;section&gt;
+    &lt;div class='snippet'&gt;
+    &lt;div class='metadata'&gt;
+    &lt;strong&gt;An old silent pond&lt;/strong&gt;
+    &lt;span&gt;#1&lt;/span&gt;
+    &lt;/div&gt;
+    Internal Server Error</code></pre>
+<p>Это очень плохо. Наше приложение выдало ошибку, но пользователю ошибочно был отправлен
+    ответ 200 OK. И что еще хуже, они получили наполовину законченную HTML-страницу.
+    </p>
+<p>Чтобы исправить это, нам нужно сделать так, чтобы шаблон рендерил двухэтапный процесс. Во-первых, мы должны сделать
+    «пробный» рендер, записав шаблон в буфер. Если это не удается, мы можем ответить пользователю
+    сообщением об ошибке. Но если это сработает, мы сможем записать содержимое буфера в наш
+    http.ResponseWriter.</p>
+<p>Давайте обновим помощник рендеринга, чтобы вместо этого использовать этот подход:
+</p>
+
+<pre><code>File: cmd/web/helpers.go
+
+    package main
+    
+    import (
+        "bytes" // New import
+        "fmt"
+        "net/http"
+        "runtime/debug"
+    )
+    ...
+
+    func (app *application) render(w http.ResponseWriter, r *http.Request, name string, td *templateData) {
+        ts, ok := app.templateCache[name]
+        if !ok {
+            app.serverError(w, fmt.Errorf("The template %s does not exist", name))
+            return
+        }
+
+        // Инициализировать новый буфер.
+        buf := new(bytes.Buffer)
+
+        // Записываем шаблон в буфер, а не прямо
+        // в http.ResponseWriter. Если есть ошибка, вызовите наш хелпер serverError и
+        // вернитесь.
+        err := ts.Execute(buf, td)
+        
+        if err != nil {
+            app.serverError(w, err)
+            return
+        }
+
+        // Записываем содержимое буфера в http.ResponseWriter. Опять же,
+        // это еще один случай, когда мы передаем наш http.ResponseWriter функции, которая
+        // принимает io.Writer.
+        buf.WriteTo(w)
+    }</code></pre>
+<p>Перезапустите приложение и попробуйте сделать тот же запрос еще раз. Теперь вы должны получить
+    правильное сообщение об ошибке и ответ 500 Internal Server Error.</p>
+
+<pre><code class="terminal">$ curl -i http://localhost:4000/snippet?id=1
+    HTTP/1.1 500 Internal Server Error
+    Content-Type: text/plain; charset=utf-8
+    X-Content-Type-Options: nosniff
+    Date: Sun, 09 Sep 2018 09:55:13 GMT
+    Content-Length: 22
+    Internal Server Error</code></pre>
+<p>Качественный товар. Это выглядит намного лучше.</p>
+<p>Прежде чем мы перейдем к следующей главе, вернитесь к файлу show.page.tmpl и удалите
+    преднамеренную ошибку:</p>
+
+<pre><code>File: ui/&lt;html/show.page.tmpl
+    
+    {{template "base" .}}
+    
+    {{define "title"}}Snippet #{{.Snippet.ID}}{{end}}
+    
+    {{define "main"}}
+        {{with .Snippet}}
+        &lt;div class='snippet'&gt;
+            &lt;div class='metadata'&gt;
+                &lt;strong&gt;{{.Title}}&lt;/strong&gt;
+                &lt;span&gt;#{{.ID}}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;pre&gt;&lt;code&gt;{{.Content}}&lt;/code&gt;&lt;/pre&gt;
+            &lt;div class='metadata'&gt;
+                &lt;time&gt;Created: {{.Created}}&lt;/time&gt;
+                &lt;time&gt;Expires: {{.Expires}}&lt;/time&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        {{end}}
+    {{end}}</code></pre>
+
+<h2>Глава 5.5. Общие динамические данные</h2>
+<p>В некоторых веб-приложениях могут быть общие динамические данные, которые вы хотите включить
+    более чем на одну или даже на каждую веб-страницу. Например, вы можете включить
+    имя и изображение профиля текущего пользователя или токен CSRF на всех страницах с формами.
+    В нашем случае давайте начнем с чего-то простого и скажем, что мы хотим включить текущий
+    год в нижний колонтитул на каждой странице.</p>
+<p>Для этого мы начнем с добавления нового поля CurrentYear в структуру templateData, например</p>
+<pre><code>File: cmd/web/templates.go
+
+    package main
+    ...
+
+    // Добавляем поле CurrentYear в структуру templateData.
+    type templateData struct {
+        CurrentYear int
+        Snippet *models.Snippet
+        Snippets []*models.Snippet
+    }
+    ...</code></pre>
+<p>Затем следующим шагом будет создание нового вспомогательного метода addDefaultData() для нашего приложения,
+    который будет вставлять текущий год в экземпляр структуры templateData.
+    </p>
+<p>Затем мы можем вызвать это из нашего помощника render(), чтобы автоматически добавить данные по умолчанию для
+    каждой страницы.</p>
+<p>Я продемонстрирую:</p>
+<pre><code>File: cmd/web/helpers.go
+
+    package main
+
+    import (
+        "bytes"
+        "fmt"
+        "net/http"
+        "runtime/debug"
+        "time" // Новый импорт
+    )
+    ...
+    // Создаем хелпер addDefaultData. Это принимает указатель на
+    // структуру templateData, добавляет текущий год в поле CurrentYear, а затем возвращает
+    // указатель. Опять же, мы не используем параметр *http.Request в данный
+    // момент, но мы будем делать это позже в книге.
+    func (app *application) addDefaultData(td *templateData, r *http.Request) *templateData {
+        if td == nil {
+            td = &templateData{}
+        }
+        td.CurrentYear = time.Now().Year()
+        return td
+    }
+
+    func (app *application) render(w http.ResponseWriter, r *http.Request, name string, td *templateData) {
+        ts, ok := app.templateCache[name]
+        if !ok {
+            app.serverError(w, fmt.Errorf("The template %s does not exist", name))
+            return
+        }
+        buf := new(bytes.Buffer)
+        // Выполнить набор шаблонов, передав динамические данные с
+        // введенным текущим годом.
+        err := ts.Execute(buf, app.addDefaultData(td, r))
+        if err != nil {
+            app.serverError(w, err)
+            return
+        }
+
+        buf.WriteTo(w)
+    }</code></pre>
+<p>Теперь нам просто нужно обновить файл ui/html/footer.partial.tmpl для отображения года, например:</p>
+<pre><code>File: ui/html/footer.partial.tmpl
+    {{define "footer"}}
+        &lt;footer&gt;Powered by &lt;a href='https://golang.org/'&gt;Go&lt;/a&gt; in {{.CurrentYear}}&lt;/footer&gt;
+    {{end}}</code></pre>
+<p>Перезапустите приложение и перейдите на домашнюю страницу по адресу http://localhost:4000. Вы должны увидеть
+    текущий год в нижнем колонтитуле следующим образом:</p>
+<p><img src="static/images/picture5.5.png"/></p>
+
+<h2>Глава 5.6. Пользовательские функции шаблона</h2>
+<p>В последней части этого раздела о шаблонах и динамических данных я хотел бы объяснить, как создавать
+    собственные пользовательские функции для использования в шаблонах Go.</p>
+<p>Чтобы проиллюстрировать это, давайте создадим пользовательскую функцию humanDate(), которая выводит дату и время в
+    удобном «очеловеченном» формате, например 02 января 2019 года в 15:04, вместо вывода дат в
+    формате по умолчанию 2019-01-02 15:04:00. +0000 UTC, как сейчас.</p>
+<p>Для этого необходимо выполнить два основных шага:</p>
+<ol>
+    <li>Нам нужно создать объект template.FuncMap, содержащий пользовательскую
+        функцию humanDate().</li>
+    <li>Нам нужно использовать метод template.Funcs(), чтобы зарегистрировать это перед разбором шаблонов.</li>
+</ol>
+<p>Идите вперед и добавьте следующий код в ваш файл templates.go:</p>
+<pre><code>File: cmd/web/templates.go
+
+    package main
+    
+    import (
+        "html/template"
+        "path/filepath"
+        "time" // New import
+        "turamant.net/snippetbox/pkg/models"
+    )
+
+    ...
+    // Создайте функцию humanDate, которая возвращает красиво отформатированное строковое
+    // представление объекта time.Time.
+    func humanDate(t time.Time) string {
+        return t.Format("02 Jan 2006 at 15:04")
+    }
+
+    // Инициализировать объект template.FuncMap и сохранить его в глобальной переменной.
+    // По сути, это карта со строковыми ключами, которая действует как поиск между именами
+    // наших пользовательских функций шаблона и самими функциями.
+    var functions = template.FuncMap{
+        "humanDate": humanDate,
+    }
+
+    func newTemplateCache(dir string) (map[string]*template.Template, error) {
+        cache := map[string]*template.Template{}
+        pages, err := filepath.Glob(filepath.Join(dir, "*.page.tmpl"))
+        if err != nil {
+            return nil, err
+        }
+
+        for _, page := range pages {
+            name := filepath.Base(page)
+            
+            // Шаблон template.FuncMap должен быть зарегистрирован в наборе шаблонов до
+            // вызова метода ParseFiles(). Это означает, что мы должны использовать template.New(),
+            // чтобы создать пустой набор шаблонов, использовать метод Funcs(), чтобы зарегистрировать
+            // template.FuncMap, а затем проанализировать файл как обычно.
+            ts, err := template.New(name).Funcs(functions).ParseFiles(page)
+            if err != nil {
+                return nil, err
+            }
+            ts, err = ts.ParseGlob(filepath.Join(dir, "*.layout.tmpl"))
+            if err != nil {
+                return nil, err
+            }
+            ts, err = ts.ParseGlob(filepath.Join(dir, "*.partial.tmpl"))
+            if err != nil {
+                return nil, err
+            }
+            cache[name] = ts
+        }
+
+        return cache, nil
+    }</code></pre>
+<p>Прежде чем мы продолжим, я должен объяснить: пользовательские функции шаблона (например, наша
+    функция humanDate()) могут принимать столько параметров, сколько им нужно, но они должны возвращать
+    только одно значение. Единственным исключением является случай, когда вы хотите вернуть ошибку в качестве второго значения, и в
+    этом случае это тоже нормально.</p>
+<p>Теперь мы можем использовать нашу функцию humanDate() так же, как встроенные
+    функции шаблона:</p>
+<pre><code>File: ui/html/home.page.tmpl
+
+    {{template "base" .}}
+    
+    {{define "title"}}Home{{end}}
+    
+    {{define "main"}}
+        &lt;h2&gt;Latest Snippets&lt;/h2&gt;
+        {{if .Snippets}}
+        &lt;table&gt;
+            &lt;tr&gt;
+                &lt;th&gt;Title&lt;/th&gt;
+                &lt;th&gt;Created&lt;/th&gt;
+                &lt;th&gt;ID&lt;/th&gt;
+            &lt;/tr&gt;
+            {{range .Snippets}}
+            &lt;tr&gt;
+                &lt;td&gt;&lt;a href='/snippet?id={{.ID}}'&gt;{{.Title}}&lt;/a&gt;&lt;/td&gt;
+                &lt;!-- Use the new template function here --&gt;
+                &lt;td&gt;{{humanDate .Created}}&lt;/td&gt;
+                &lt;td&gt;#{{.ID}}&lt;/td&gt;
+            &lt;/tr&gt;
+            {{end}}
+        &lt;/table&gt;
+        {{else}}
+            &lt;p&gt;There's nothing to see here... yet!&lt;/p&gt;
+        {{end}}
+    {{end}}</code></pre>
+<pre><code>File: ui/html/show.page.tmpl
+    
+    {{template "base" .}}
+    
+    {{define "title"}}Snippet #{{.Snippet.ID}}{{end}}
+    
+    {{define "main"}}
+        {{with .Snippet}}
+        &lt;div class='snippet'&gt;
+            &lt;div class='metadata'&gt;
+                &lt;strong&gt;{{.Title}}&lt;/strong&gt;
+                &lt;span&gt;#{{.ID}}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;pre&gt;&lt;code&gt;{{.Content}}&lt;/code&gt;&lt;/pre&gt;
+            &lt;div class='metadata'&gt;
+                &lt;!-- Use the new template function here --&gt;
+                &lt;time&gt;Created: {{humanDate .Created}}&lt;/time&gt;
+                &lt;time&gt;Expires: {{humanDate .Expires}}&lt;/time&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        {{end}}
+    {{end}}</code></pre>
+
+<p>После этого перезапустите приложение. Если вы посетите http://localhost:4000 и
+    http://localhost:4000/snippet?id=1 в своем браузере, вы должны увидеть новые, хорошо
+    отформатированные используемые даты.</p>
+<p><img src="static/images/picture5.6.png"/></p>
+<p></p>
+<p><img src="static/images/picture5.7.png"/></p>
+
+<h3>Дополнительная информация</h3>
+<h4>Конвейерная обработка</h4>
+<p>В приведенном выше коде мы вызвали нашу пользовательскую функцию шаблона следующим образом:
+</p>
+<pre><code>&lt;time&gt;Created: {{humanDate .Created}}&lt;/time&gt;</code></pre>
+<p>Альтернативный подход заключается в использовании | символ для передачи значений в функцию. Это
+    немного похоже на конвейерную передачу вывода от одной команды к другой в терминалах Unix. Мы могли бы переписать приведенное выше как:</p>
+<pre><code>&lt;time>Created: {{.Created | humanDate}}&lt;/time&gt;</code></pre>
+<p>Хорошая особенность конвейерной обработки заключается в том, что вы можете создать произвольно длинную цепочку шаблонных
+    функций, которые используют выходные данные одной функции в качестве входных данных для следующей. Например, мы можем
+    передать вывод нашей функции humanDate во встроенную функцию printf следующим образом:</p>
+<pre><code>&lt;time&gt;{{.Created | humanDate | printf "Created: %s"}}&lt;/time&gt;</code></pre>
+
 <p>Конец главы 5.</p>
 </body>
 </html>
