@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="static/css/main.css">
+    <title>Page 9</title>
+</head>
+<body>
+<h1>Глава 9. HTTP с отслеживанием состояния</h1>
+<p>Приятным шагом для улучшения пользовательского опыта было бы отображение одноразового
+    сообщения с подтверждением, которое пользователь увидит после добавления нового фрагмента. Вот так:</p>
+<p><img src="static/images/picture9.1.png"/></p>
+<p>Подобное сообщение с подтверждением должно отображаться для пользователя только один раз (сразу после
+    создания фрагмента), и другие пользователи никогда не должны видеть это сообщение. Если вы имеете
+    опыт работы с Rails, Django, Laravel или подобными фреймворками, вы можете знать этот тип
+    функциональности как мгновенное сообщение.</p>
+<p>Чтобы это заработало, нам нужно начать обмениваться данными (или состоянием) между HTTP-запросами для одного
+    и того же пользователя. Самый распространенный способ сделать это — реализовать сеанс для пользователя.</p>
+<p>В этом разделе вы узнаете:</p>
+<ul>
+    <li>Какие менеджеры сеансов доступны, чтобы помочь нам реализовать сеансы в Go.</li>
+    <li>Как вы можете настроить поведение сеанса (включая тайм-ауты и настройки файлов cookie) в соответствии
+        с потребностями вашего приложения.</li>
+    <li>Как использовать сеансы для безопасного и надежного обмена данными между запросами конкретного
+        пользователя.</li>
+</ul>
+
+<h2>9.1 Установка диспетчера сеансов</h2>
+<p>Когда дело доходит до работы с сеансами, возникает множество вопросов безопасности, и правильная
+    реализация является нетривиальной задачей. Если вам действительно не нужно развертывать собственную реализацию, рекомендуется
+    использовать существующий, хорошо протестированный сторонний пакет.</p>
+<p>В отличие от маршрутизаторов, для Go существует лишь несколько хороших пакетов управления сеансами, которые
+    не зависят от конкретной платформы:</p>
+
+<ul>
+    <li><span>gorilla/sessions</span> — наиболее распространённый и известный пакет. Он имеет простой и
+        удобный в использовании API и поддерживает огромный спектр сторонних хранилищ сеансов, включая
+        MySQL, PostgreSQL и Redis. Однако, что важно (и, к сожалению), существуют
+        проблемы с утечками памяти, и он не предоставляет механизма обновления токенов сеанса, а это означает, что он уязвим для атак с фиксацией сеанса, если вы используете один из сторонних сеансов на стороне сервера. магазины. Обе проблемы должны быть решены во второй версии пакета, но на момент написания она еще не доступна.</li>
+    <li><span>alexedwards/scs</span> — еще один менеджер сеансов, который поддерживает различные
+        хранилища сеансов на стороне сервера, включая MySQL, PostgreSQL и Redis. Он не страдает от тех же
+        проблем безопасности и утечки памяти, что и Gorilla Sessions, поддерживает автоматическую загрузку и
+        сохранение данных сеанса через промежуточное программное обеспечение и имеет приятный интерфейс для типобезопасного
+        манипулирования данными.</li>
+    <li><span>golangcollege/sessions</span> обеспечивает хранилище сеансов на основе файлов cookie с использованием зашифрованных и аутентифицированных файлов cookie. Он легкий и сфокусированный, имеет простой API и поддерживает автоматическую загрузку и сохранение сеанса данных через промежуточное программное обеспечение. поскольку он использует файлы cookie для хранения данных сеанса, он очень производительен и легко настраиваемый, но есть несколько важных особенностей: объем информации, который вы можете хранить, (до 4 КБ), и вы не можете отозвать сеансы так же, как это можно сделать. с использованием хранения на стороне сервера.</li>
+</ul>
+<p>В общем, если вы согласны использовать сеансы на основе файлов cookie, я рекомендую использовать
+    пакет golangcollege/sessions, что мы и будем делать в оставшейся части этого раздела
+    книги.</p>
+<p>Если вы следуете инструкциям, установите v1 пакета следующим образом:</p>
+<p class="terminal">
+    $ cd $HOME/code/snippetbox
+    $ go get github.com/golangcollege/sessions@v1
+
+    go: downloading github.com/golangcollege/sessions v1.2.0
+    go: downloading golang.org/x/crypto v0.0.0-20200317142112-1b76d66859c6
+    go: downloading golang.org/x/sys v0.0.0-20190412213103-97732733099d
+
+</p>
+<p>Обратите внимание, что пакеты golang.org/x/crypto и golang.org/x/sys, которые являются зависимостями golangcollege/sessions, также были автоматически загружены?</p>
+
+<h2>9.2 Настройка диспетчера сеансов</h2>
+<p>В этой главе я расскажу о процессе настройки и использования
+    пакета golangcollege/sessions, но если вы собираетесь использовать его в рабочем приложении, я рекомендую прочитать документацию и справочник по API, чтобы ознакомиться со всем спектром возможностей функции.</p>
+<p>Первое, что нам нужно сделать, это установить менеджер сеансов в нашем файле main.go и сделать его доступным для наших обработчиков через структуру приложения. Менеджер сеансов хранит настройки конфигурации для наших сеансов, а также предоставляет некоторые промежуточные и вспомогательные методы для обработки загрузки и сохранения данных сеанса.</p>
+<p>Еще нам понадобится секретный ключ длиной 32 байта для шифрования и
+    аутентификация файлов cookie сеанса. Мы обновим наше приложение, чтобы оно могло принимать этот секретный ключ с помощью нового флага командной строки.</p>
+<p>Откройте файл main.go и обновите его следующим образом:</p>
+<pre><code>
+File: cmd/web/main.go
+
+package main
+
+import (
+    "database/sql"
+    "flag"
+    "html/template"
+    "log"
+    "net/http"
+    "os"
+    "time" // Новый импорт
+    "turamant.net/snippetbox/pkg/models/mysql"
+    _ "github.com/go-sql-driver/mysql"
+    "github.com/golangcollege/sessions" // Новый импорт
+)
+
+// Добавьте новое поле сеанса в структуру приложения.
+type application struct {
+    errorLog *log.Logger
+    infoLog *log.Logger
+    session *sessions.Session
+    snippets *mysql.SnippetModel
+    templateCache map[string]*template.Template
+}
+
+func main() {
+    addr := flag.String("addr", ":4000", "HTTP network address")
+    dsn := flag.String("dsn", "web:pass@/snippetbox?parseTime=true", "MySQL data source name")
+    
+    // Определите новый флаг командной строки для секрета сеанса (случайный ключ,
+    // который будет использоваться для шифрования и аутентификации файлов cookie сеанса). Его длина должна 
+    // составлять 32 байта.
+    secret := flag.String("secret", "s6Ndh+pPbnzHbS*+9Pk8qGWhTzbpa@ge", "Secret key")
+    flag.Parse()
+
+    infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+    errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+    
+    db, err := openDB(*dsn)
+    
+    if err != nil {
+        errorLog.Fatal(err)
+    }
+
+    defer db.Close()
+    
+    templateCache, err := newTemplateCache("./ui/html/")
+    
+    if err != nil {
+        errorLog.Fatal(err)
+    }
+
+    // Используйте функцию session.New() для инициализации нового менеджера сеансов,
+    // передав секретный ключ в качестве параметра. Затем мы настраиваем его так,
+    // что сеансы всегда истекают через 12 часов.
+    session := sessions.New([]byte(*secret))
+    session.Lifetime = 12 * time.Hour
+    
+    // И добавьте менеджер сеансов в зависимости нашего приложения.
+    app := &application{
+        errorLog: errorLog,
+        infoLog: infoLog,
+        session: session,
+        snippets: &mysql.SnippetModel{DB: db},
+        templateCache: templateCache,
+    }
+    srv := &http.Server{
+        Addr: *addr,
+        ErrorLog: errorLog,
+        Handler: app.routes(),
+    }
+    infoLog.Printf("Starting server on %s", *addr)
+    err = srv.ListenAndServe()
+    errorLog.Fatal(err)
+}
+...
+</code></pre>
+
+<p class="note">
+    Примечание. Функция session.New() возвращает структуру Session, содержащую
+настройки конфигурации сеанса. В приведенном выше коде мы установили поле Lifetime
+этой структуры, чтобы сеансы истекали через 12 часов, но есть ряд других полей
+, которые вы можете и должны настроить в зависимости от потребностей вашего приложения.
+</p>
+<p>Чтобы сеансы работали, нам также необходимо обернуть маршруты наших приложений промежуточным программным обеспечением,
+    предоставляемым методом Session.Enable(). Это промежуточное программное обеспечение загружает и сохраняет данные сеанса
+    в файл cookie сеанса и обратно с каждым HTTP-запросом и ответом по мере необходимости.</p>
+<p>Важно отметить, что нам не нужно это промежуточное программное обеспечение для работы на всех
+    маршрутах наших приложений. В частности, нам это не нужно на маршруте /static/, поскольку все, что он делает, — это обслуживание
+    статических файлов, и нет необходимости в каком-либо поведении с отслеживанием состояния.</p>
+<p>Поэтому нет смысла добавлять промежуточное программное обеспечение сеанса в нашу существующую
+    цепочку <span>standardMiddleware</span>.</p>
+<p>Вместо этого давайте создадим новую цепочку <span>dynamicMiddleware</span>, содержащую промежуточное ПО.
+    подходит только для наших динамических маршрутов приложений.</p>
+<p>Откройте файл routes.go и обновите его следующим образом:</p>
+<pre><code>
+File: cmd/web/routes.go
+
+package main
+
+import (
+    "net/http"
+    "github.com/bmizerany/pat"
+    "github.com/justinas/alice"
+)
+
+func (app *application) routes() http.Handler {
+    standardMiddleware := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
+    
+    // Создайте новую цепочку промежуточного программного обеспечения, содержащую промежуточное программное 
+    // обеспечение, специфичное для наших динамических маршрутов приложений. На данный момент эта цепочка 
+    // будет содержать только промежуточное программное обеспечение сеанса, но позже мы добавим к нему больше.
+    dynamicMiddleware := alice.New(app.session.Enable)
+    mux := pat.New()
+    
+    // Обновите эти маршруты, чтобы использовать новую динамическую цепочку промежуточного программного 
+    // обеспечения, за которой следует соответствующая функция-обработчик.
+    mux.Get("/", dynamicMiddleware.ThenFunc(app.home))
+    mux.Get("/snippet/create", dynamicMiddleware.ThenFunc(app.createSnippetForm))
+    mux.Post("/snippet/create", dynamicMiddleware.ThenFunc(app.createSnippet))
+    mux.Get("/snippet/:id", dynamicMiddleware.ThenFunc(app.showSnippet))
+    
+    // Оставьте маршрут статических файлов без изменений.
+    fileServer := http.FileServer(http.Dir("./ui/static/"))
+    mux.Get("/static/", http.StripPrefix("/static", fileServer))
+    
+    return standardMiddleware.Then(mux)
+}
+</code></pre>
+
+<p>Если вы запустите приложение сейчас, вы обнаружите, что оно компилируется нормально, и
+    маршруты вашего приложения продолжают работать как обычно.</p>
+<h3>Дополнительная информация</h3>
+<h4>Без использования Alice</h4>
+<p>Если вы не используете пакет justinas/alice для управления цепочками промежуточного программного обеспечения, тогда
+    вам просто нужно вместо этого обернуть функции-обработчики промежуточным программным обеспечением сеанса.
+</p>    
+<p>Так:</p> 
+    <pre><code>
+        mux := pat.New()
+        mux.Get("/", app.session.Enable(http.HandlerFunc(app.home)))
+        mux.Get("/snippet/create", app.session.Enable(http.HandlerFunc(app.createSnippetForm)))
+
+        // ... etc
+    </code></pre> 
+
+<h2>9.3. Работа с данными сеанса</h2>
+<p>В этой главе давайте задействуем функциональность сеанса и будем использовать ее для сохранения
+    флэш-сообщения подтверждения между HTTP-запросами, которые мы обсуждали ранее.</p>
+<p>Чтобы добавить подтверждающее сообщение к данным сеанса пользователя, мы должны использовать
+    метод *Session.Put(). Второй параметр — это ключ данных, который мы
+    также будем использовать для последующего получения данных из сеанса. Это будет выглядеть примерно так:</p>
+<pre><code>
+    app.session.Put(r, "flash", "Snippet successfully created!")
+
+</code></pre>
+<p>Чтобы получить данные из сеанса, у нас есть два варианта. Мы могли бы использовать
+    метод <span>*Session.Get()</span> (который возвращает тип интерфейса {}) и тип утвердить значение в строке
+    , примерно так:</p>
+<pre><code>
+    flash, ok := app.session.Get(r, "flash").(string)
+
+    if !ok {
+        app.serverError(w, errors.New("type assertion to string failed"))
+    }
+</code></pre>
+<p>Или, альтернативно, мы можем использовать метод <span>*Session.GetString()</span>, который позаботится о
+    преобразовании типов за нас. Если в данных сеанса нет соответствующего ключа — или полученное
+    значение не может быть подтверждено в строке — этот метод вернет пустую строку «».</p>
+<pre><code>
+    flash := app.session.GetString(r, "flash")
+
+</code></pre>
+<p>Пакет <span>golangcollege/sessions</span> также предоставляет аналогичные помощники для получения
+    типов bool, []byte, float64, int и time.Time.</p>
+<p>Однако, поскольку мы хотим, чтобы наше сообщение с подтверждением отображалось один раз — и только
+    один раз — нам также необходимо удалить сообщение из данных сеанса после его получения.</p>
+<p>Для этого мы могли бы использовать метод <span>*Session.Remove()</span>, но лучшим вариантом является
+    метод <span>*Session.PopString()</span>, который извлекает строковое значение для заданного ключа, а затем
+    удаляет его из данных сеанса за один шаг.</p>
+<pre><code>
+    flash := app.session.PopString(r, "flash")
+
+</code></pre>
+<p>Это очень краткое изложение основных функций для добавления и удаления данных сеанса,
+    но я снова рекомендую ознакомиться с полной <a href="https://pkg.go.dev/github.com/golangcollege/sessions">документацией</a> пакета, если
+    вы планируете использовать его в производственных приложениях.</p>
+
+<h3>Использование данных сеанса на практике</h3>
+<p>Давайте применим то, что мы только что узнали, на практике и обновим обработчик <span>createSnippet</span>, чтобы
+    он добавлял подтверждающее сообщение к данным сеанса текущего пользователя следующим образом:</p>
+<pre><code>
+File: cmd/web/handlers.go
+
+package main
+...
+
+func (app *application) <span>createSnippet</span>(w http.ResponseWriter, r *http.Request) {
+    err := r.ParseForm()
+    if err != nil {
+        app.clientError(w, http.StatusBadRequest)
+        return
+    }
+
+    form := forms.New(r.PostForm)
+    form.Required("title", "content", "expires")
+    form.MaxLength("title", 100)
+    form.PermittedValues("expires", "365", "7", "1")
+
+    if !form.Valid() {
+        app.render(w, r, "create.page.tmpl", &templateData{Form: form})
+        return
+    }
+
+    id, err := app.snippets.Insert(form.Get("title"), form.Get("content"), form.Get("expires"))
+    if err != nil {
+        app.serverError(w, err)
+        return
+    }
+
+    // Используйте метод Put(), чтобы добавить строковое значение («Ваш фрагмент 
+    // успешно сохранен !») и соответствующий ключ («flash») к данным сеанса. 
+    // Обратите внимание: если для текущего пользователя нет существующего сеанса
+    // (или срок действия его сеанса истек), то промежуточным программным обеспечением сеанса 
+    // будет автоматически создан новый, пустой сеанс для него .
+    app.session.Put(r, "flash", "Snippet successfully created!")
+    http.Redirect(w, r, fmt.Sprintf("/snippet/%d", id), http.StatusSeeOther)
+}
+</code></pre>
+
+<p>Далее мы хотим, чтобы наш обработчик <span>showSnippet</span> получил сообщение с подтверждением (если оно
+    существует в сеансе для текущего пользователя) и передал его в шаблон для последующего отображения.</p>
+<pre><code>
+File: cmd/web/handlers.go
+
+package main
+...
+
+func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
+    id, err := strconv.Atoi(r.URL.Query().Get(":id"))
+    if err != nil || id < 1 {
+        app.notFound(w)
+        return
+    }
+    s, err := app.snippets.Get(id)
+    
+    if err != nil {
+        if errors.Is(err, models.ErrNoRecord) {
+            app.notFound(w)
+        } else {
+            app.serverError(w, err)
+        }
+        return
+    }
+
+    // Используйте метод PopString(), чтобы получить значение клавиши «flash».
+    // PopString() также удаляет ключ и значение из данных сеанса, поэтому
+    // действует как однократная выборка. Если в данных сеанса нет соответствующего ключа, 
+    // будет возвращена пустая строка.
+    flash := app.session.PopString(r, "flash")
+    
+    // Передайте флэш-сообщение в шаблон.
+    app.render(w, r, "show.page.tmpl", &templateData{
+    Flash: flash,
+    Snippet: s,
+    })
+}
+...
+</code></pre>
+<p>Если вы попытаетесь запустить приложение сейчас, компилятор (справедливо) проворчит, что поле Flash
+    не определено в нашей структуре templateData. Добавьте это вот так:</p>
+
+<pre><code>
+File: cmd/web/templates.go
+
+package main
+
+import (
+    "html/template"
+    "path/filepath"
+    "time"
+    "turamant.net/snippetbox/pkg/forms"
+    "turamant.net/snippetbox/pkg/models"
+)
+
+// Добавьте поле Flash в структуру templateData.
+type templateData struct {
+    CurrentYear int
+    Flash string
+    Form *forms.Form
+    Snippet *models.Snippet
+    Snippets []*models.Snippet
+}
+...
+</code></pre>
+
+<p>И теперь мы можем обновить наш файл <span>base.layout.tmpl</span> для отображения флэш-сообщения, если оно
+    существует.</p>
+    <pre><code>
+File: ui/html/base.layout.tmpl
+
+{{define "base"}}
+
+&lt;!doctype html&gt;
+&lt;html lang='en'&gt;
+    &lt;head&gt;
+        &lt;meta charset='utf-8'&gt;
+        &lt;title&gt;{{template "title" .}} - Snippetbox&lt;/title&gt;
+        &lt;link rel='stylesheet' href='/static/css/main.css'&gt;
+        &lt;link rel='shortcut icon' href='/static/img/favicon.ico' type='image/x-icon'&gt;
+        &lt;link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700'&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;header&gt;
+            &lt;h1&gt;&lt;a href='/'&gt;Snippetbox&lt;/a&gt;&lt;/h1&gt;
+        &lt;/header&gt;
+        &lt;nav&gt;
+            &lt;a href='/'&gt;Home&lt;/a&gt;
+            &lt;a href='/snippet/create'&gt;Create snippet&lt;/a&gt;
+        &lt;/nav&gt;
+        &lt;main&gt;
+            {{with .Flash}}
+            &lt;div class='flash '&gt;{{.}}&lt;/div&gt;
+            {{end}}
+            {{template "main" .}}
+        &lt;/main&gt;
+        {{template "footer" .}}
+        &lt;script src="/static/js/main.js" type="text/javascript"&gt;&lt;/script&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+
+{{end}}
+    </code></pre>
+<p>Помните, что блок <span>{{with .Flash}}</span> будет оцениваться только в том случае, если значение .Flash не является
+    пустой строкой. Таким образом, если в сеансе текущего пользователя нет ключа «flash», в результате
+    фрагмент новой разметки просто не будет отображаться.</p>
+<p>Как только это будет сделано, сохраните все файлы и перезапустите приложение. Попробуйте добавить новый фрагмент
+    вот так…</p>
+<p><img src="static/images/picture9.2.png"/></p>
+<p>И после перенаправления вы должны увидеть всплывающее сообщение:</p>
+<p><img src="static/images/picture9.3.png"/></p>
+<p>Если вы попытаетесь обновить страницу, вы можете убедиться, что флэш-сообщение больше не отображается —
+    это было одноразовое сообщение для текущего пользователя сразу после создания фрагмента.</p>
+<p><img src="static/images/picture9.4.png"</p>
+
+<h3>Автоматическое отображение флэш-сообщений</h3>
+<p>Небольшое улучшение, которое мы можем сделать (что сэкономит нам часть работы на последующих этапах сборки), — это автоматизировать
+    отображение флэш-сообщений, чтобы любое сообщение автоматически включалось при
+    следующем отображении любой страницы.</p>
+<p>Мы можем сделать это, добавив любое флэш-сообщение к данным шаблона с помощью
+    вспомогательного метода addDefaultData(), который мы создали ранее, например:</p>
+<pre><code>
+File: cmd/web/helpers.go
+
+package main
+...
+
+func (app *application) addDefaultData(td *templateData, r *http.Request) *templateData {
+    if td == nil {
+        td = &templateData{}
+    }
+
+    td.CurrentYear = time.Now().Year()
+    
+    // Добавьте флэш-сообщение в данные шаблона, если таковое существует.
+    td.Flash = app.session.PopString(r, "flash")
+    return td
+}
+...
+</code></pre>
+<p>Внесение этого изменения означает, что нам больше не нужно проверять наличие флэш-сообщения в
+    обработчике showSnippet, и код можно вернуть к следующему виду:</p>
+<pre><code>
+package main
+...
+
+func (app *application) showSnippet(w http.ResponseWriter, r *http.Request) {
+    id, err := strconv.Atoi(r.URL.Query().Get(":id"))
+    if err != nil || id < 1 {
+        app.notFound(w)
+        return
+    }
+    s, err := app.snippets.Get(id)
+    if err != nil {
+        if errors.Is(err, models.ErrNoRecord) {
+            app.notFound(w)
+        } else {
+            app.serverError(w, err)
+        }
+        return
+    }
+
+    app.render(w, r, "show.page.tmpl", &templateData{
+    Snippet: s,
+    })
+}
+...
+</code></pre>
+<p>Не стесняйтесь попробовать запустить приложение еще раз и создать еще один фрагмент. Вы должны обнаружить
+    , что функция флэш-сообщений по-прежнему работает должным образом.</p>
+<p>Конец главы 9</p>
+</body>
+</html>

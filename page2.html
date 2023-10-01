@@ -23,7 +23,7 @@
     <li>Подавайте статические файлы, такие как изображения, CSS и JavaScript, из вашего приложения.    </li> 
         
 </ul>
-    <h2>Глава 2.1 Установка Go</h1>
+    <h2>Глава 2.1 Установка Go</h2>
 <p>Информация в этой книге верна для последней версии Go (версия 1.15), и я
     рекомендую установить ее, если вы хотите продолжить.</p>    
 <p>Если у вас уже установлен Go, вы можете проверить, какая у вас версия, в терминале
@@ -152,28 +152,42 @@
         
     <pre><code>File: main.go
         package main
-        import (
-        "log"
-        "net/http"
+
+            import (
+            "log"
+            "net/http"
         )
-        // Define a home handler function which writes a byte slice containing
-        // "Hello from Snippetbox" as the response body.
+        <i>
+            // Определить домашнюю функцию-обработчик, которая записывает фрагмент байта, содержащий
+            // «Hello from Snippetbox» в качестве тела ответа. 
+        </i>
+
         func home(w http.ResponseWriter, r *http.Request) {
-        w.Write([]byte("Hello from Snippetbox"))
+            Write([]byte("Hello from Snippetbox"))
         }
+
+
         func main() {
-        // Use the http.NewServeMux() function to initialize a new servemux, then
-        // register the home function as the handler for the "/" URL pattern.
-        mux := http.NewServeMux()
-        mux.HandleFunc("/", home)
-        // Use the http.ListenAndServe() function to start a new web server. We pass in
-        // two parameters: the TCP network address to listen on (in this case ":4000")
-        // and the servemux we just created. If http.ListenAndServe() returns an error
-        // we use the log.Fatal() function to log the error message and exit. Note
-        // that any error returned by http.ListenAndServe() is always non-nil.
-        log.Println("Starting server on :4000")
-        err := http.ListenAndServe(":4000", mux)
-        log.Fatal(err)
+        <i>
+            // Используйте функцию http.NewServeMux() для инициализации нового servemux, затем
+            // зарегистрируйте домашнюю функцию в качестве обработчика для шаблона URL "/".
+        </i>
+
+            mux := http.NewServeMux()
+            mux.HandleFunc("/", home)
+
+        <i> 
+            // Используйте функцию http.ListenAndServe() для запуска нового веб-сервера. Мы передаем
+            // два параметра: сетевой адрес TCP для прослушивания (в данном случае «:4000»)
+            // и только что созданный сервис-мукс. Если http.ListenAndServe() возвращает ошибку
+            // мы используем функцию log.Fatal() для регистрации сообщения об ошибке и выхода.
+            // Обратите внимание, что любая ошибка, возвращаемая http.ListenAndServe(),
+            // всегда не равна нулю. 
+        </i>
+
+            log.Println("Starting server on :4000")
+            err := http.ListenAndServe(":4000", mux)
+            log.Fatal(err)
     }</code></pre>    
     <p class="note">Примечание. Функция домашнего обработчика — это обычная функция Go с двумя параметрами.
         Параметр <span>http.ResponseWriter</span> предоставляет методы для сборки
@@ -254,31 +268,47 @@
     <p>Снова откройте файл main.go и обновите его следующим образом:</p>
     <pre><code>File: main.go
         package main
+
         import (
-        "log"
-        "net/http"
+            "log"
+            "net/http"
         )
+
         func home(w http.ResponseWriter, r *http.Request) {
-        w.Write([]byte("Hello from Snippetbox"))
+            w.Write([]byte("Hello from Snippetbox"))
         }
-        // Add a showSnippet handler function.
+
+    <i>
+        // Добавьте функцию-обработчик showSnippet.
+    </i>
         func showSnippet(w http.ResponseWriter, r *http.Request) {
-        w.Write([]byte("Display a specific snippet..."))
+            w.Write([]byte("Display a specific snippet..."))
         }
-        // Add a createSnippet handler function.
+
+    <i>
+        // Добавьте функцию-обработчик createSnippet.
+    </i>
         func createSnippet(w http.ResponseWriter, r *http.Request) {
-        w.Write([]byte("Create a new snippet..."))
+            w.Write([]byte("Create a new snippet..."))
         }
+
+
         func main() {
-        // Register the two new handler functions and corresponding URL patterns with
-        // the servemux, in exactly the same way that we did before.
-        mux := http.NewServeMux()
-        mux.HandleFunc("/", home)
-        mux.HandleFunc("/snippet", showSnippet)
-        mux.HandleFunc("/snippet/create", createSnippet)
-        log.Println("Starting server on :4000")
-        err := http.ListenAndServe(":4000", mux)
-        log.Fatal(err)
+
+        <i>
+            // Зарегистрируйте две новые функции-обработчики и соответствующие шаблоны URL-адресов с помощью
+            // servermux точно так же, как мы делали это раньше.
+        </i>
+            mux := http.NewServeMux()
+
+            mux.HandleFunc("/", home)
+            mux.HandleFunc("/snippet", showSnippet)
+            mux.HandleFunc("/snippet/create", createSnippet)
+            
+            log.Println("Starting server on :4000")
+            
+            err := http.ListenAndServe(":4000", mux)
+            log.Fatal(err)
     }</code></pre>
     <p>Убедитесь, что эти изменения сохранены, а затем перезапустите веб-приложение:</p>
     <pre><code class="terminal">$ cd $HOME/code/snippetbox
@@ -300,7 +330,7 @@
         вызывается соответствующий обработчик) только тогда, когда путь URL-адреса запроса точно соответствует фиксированному пути.</p>
     <p>Напротив, наш шаблон «/» является примером пути поддерева (поскольку он заканчивается косой чертой
         ). Другим примером может быть что-то вроде «/static/».
-        сопоставляется (и вызывается соответствующий обработчик) всякий раз, когда начало пути URL-адреса запроса
+        Cопоставляется (и вызывается соответствующий обработчик) всякий раз, когда начало пути URL-адреса запроса
         совпадает с путем поддерева. Если это поможет вашему пониманию, вы можете думать о путях поддеревьев как
         о том, что они имеют подстановочный знак в конце, например "/**" или "/static/**".</p>
     <p>Это помогает объяснить, почему шаблон «/» действует как универсальное средство. Шаблон, по сути,
@@ -316,15 +346,17 @@
         package main
         ...
         func home(w http.ResponseWriter, r *http.Request) {
-        // Check if the current request URL path exactly matches "/". If it doesn't, use
-        // the http.NotFound() function to send a 404 response to the client.
-        // Importantly, we then return from the handler. If we don't return the handler
-        // would keep executing and also write the "Hello from SnippetBox" message.
-        if r.URL.Path != "/" {
-        http.NotFound(w, r)
-        return
-        }
-        w.Write([]byte("Hello from Snippetbox"))
+        <i>
+            // Проверяем, соответствует ли текущий путь URL-адреса запроса "/".
+            // Если это не так, используйте функцию http.NotFound() для отправки клиенту ответа 404.
+            // Важно отметить, что затем мы возвращаемся из обработчика. Если мы не вернем результат,
+            // обработчик продолжит выполнение и напишет сообщение «Привет из SnippetBox».
+        </i>
+            if r.URL.Path != "/" {
+                http.NotFound(w, r)
+                return
+            }
+            w.Write([]byte("Hello from Snippetbox"))
     }
     ...</code></pre>    
     <p>Внесите это изменение, затем перезапустите сервер и сделайте запрос на
@@ -339,7 +371,9 @@
         http.HandleFunc("/", home)
         http.HandleFunc("/snippet", showSnippet)
         http.HandleFunc("/snippet/create", createSnippet)
+
         log.Println("Starting server on :4000")
+
         err := http.ListenAndServe(":4000", nil)
         log.Fatal(err)
     }</code></pre>    
@@ -348,7 +382,7 @@
         уже использовали, но который инициализируется по умолчанию и сохраняется в глобальной
         переменной net/http. Вот соответствующая строка из исходного кода Go</p>
     <pre><code>var DefaultServeMux = NewServeMux()</code></pre>
-    <p>Хотя этот подход может сделать ваш код немного короче, я не рекомендую его для
+    <p class="note">Хотя этот подход может сделать ваш код немного короче, я не рекомендую его для
         производственных приложений.</p>
     <p>Поскольку DefaultServeMux является глобальной переменной, любой пакет может получить к ней доступ и зарегистрировать маршрут
         , включая любые сторонние пакеты, которые импортирует ваше приложение. Если один из этих
@@ -380,7 +414,9 @@
         перенаправить все HTTP-запросы на канонический URL-адрес или если ваше приложение действует как серверная часть
         для нескольких сайтов или служб. Например:</p>
     
-    <pre><code>mux := http.NewServeMux()
+    <pre><code>
+        mux := http.NewServeMux()
+        
         mux.HandleFunc("foo.example.org/", fooHandler)
         mux.HandleFunc("bar.example.org/", barHandler)
         mux.HandleFunc("/baz", bazHandler)</code></pre>
@@ -396,7 +432,7 @@
         </p>
     <p>Но пусть это вас не смущает. Реальность такова, что servermux Go все еще может продвинуть вас довольно далеко,
         и для многих приложений его вполне достаточно. Если вам нужно больше, есть
-        огромный выбор сторонних маршрутизаторов, которые вы можете использовать вместо servermux Go. мы посмотрим на
+        огромный выбор сторонних маршрутизаторов, которые вы можете использовать вместо servermux Go. Мы посмотрим на
         некоторые из популярных опций далее в книге.</p>
     
     <h2>Глава 2.5. Настройка заголовков HTTP</h1>    
@@ -441,21 +477,27 @@
         нужно использовать метод w.WriteHeader() следующим образом:</p>
     
     <pre><code>File: main.go
+
         package main
         ...
+
         func createSnippet(w http.ResponseWriter, r *http.Request) {
-        // Use r.Method to check whether the request is using POST or not. Note that
-        // http.MethodPost is a constant equal to the string "POST".
-        if r.Method != http.MethodPost {
-        // If it's not, use the w.WriteHeader() method to send a 405 status
-        // code and the w.Write() method to write a "Method Not Allowed"
-        // response body. We then return from the function so that the
-        // subsequent code is not executed.
-        w.WriteHeader(405)
-        w.Write([]byte("Method Not Allowed"))
-        return
-        }
-        w.Write([]byte("Create a new snippet..."))
+        <i>    
+            // Используйте r.Method, чтобы проверить, использует ли запрос POST или нет. Обратите внимание,
+            // http.MethodPost — это константа, равная строке «POST».
+        </i>    
+            if r.Method != http.MethodPost {
+            <i> 
+                // Если это не так, используйте метод w.WriteHeader() для отправки
+                // кода статуса 405 и метод w.Write() для записи
+                // тела ответа «Метод не разрешен». Затем мы возвращаемся из функции, чтобы
+                // последующий код не выполнялся.
+            </i>
+                w.WriteHeader(405)
+                w.Write([]byte("Method Not Allowed"))
+                return
+            }
+            w.Write([]byte("Create a new snippet..."))
     }
     ...</code></pre>
     <p>Хотя это изменение выглядит простым, есть несколько нюансов, которые я должен объяснить:</p>
@@ -471,20 +513,26 @@
         кодом состояния 200 OK, подобным этому:</p>
     
     <pre><code class="terminal">$ curl -i -X POST http://localhost:4000/snippet/create
-        HTTP/1.1 200 OK
-        Date: Thu, 02 Aug 2023 12:58:54 GMT
-        Content-Length: 23
-        Content-Type: text/plain; charset=utf-8
-        Create a new snippet...</code></pre>    
+        
+        ответ сервера: 
+                        HTTP/1.1 200 OK
+                        Date: Thu, 02 Aug 2023 12:58:54 GMT
+                        Content-Length: 23
+                        Content-Type: text/plain; charset=utf-8
+                        Create a new snippet...
+    </code></pre>    
     
     <p>Но если вы используете другой метод запроса — например, GET, PUT или DELETE — теперь вы должны получить
         ответ с кодом состояния 405 Method Not Allowed. Например:</p>
     <pre><code class="terminal">$ curl -i -X PUT http://localhost:4000/snippet/create
-        HTTP/1.1 405 Method Not Allowed
-        Date: Thu, 02 Aug 2023 12:59:16 GMT
-        Content-Length: 18
-        Content-Type: text/plain; charset=utf-8
-        Method Not Allowed</code></pre>
+        
+        ответ сервера:
+                        HTTP/1.1 405 Method Not Allowed
+                        Date: Thu, 02 Aug 2023 12:59:16 GMT
+                        Content-Length: 18
+                        Content-Type: text/plain; charset=utf-8
+                        Method Not Allowed
+    </code></pre>
     <h3>Настройка заголовков</h3>
     <p>Еще одно улучшение, которое мы можем сделать, — включить заголовок Allow: POST с каждым
         ответом 405 Method Not Allowed, чтобы сообщить пользователю, какие методы запроса поддерживаются
@@ -495,17 +543,20 @@
     <pre><code>File: main.go
         package main
         ...
+
         func createSnippet(w http.ResponseWriter, r *http.Request) {
-        if r.Method != http.MethodPost {
-        // Use the Header().Set() method to add an 'Allow: POST' header to the
-        // response header map. The first parameter is the header name, and
-        // the second parameter is the header value.
-        w.Header().Set("Allow", http.MethodPost)
-        w.WriteHeader(405)
-        w.Write([]byte("Method Not Allowed"))
-        return
-        }
-        w.Write([]byte("Create a new snippet..."))
+            if r.Method != http.MethodPost {
+            <i>
+                // Используйте метод Header().Set(), чтобы добавить заголовок «Allow: POST» в
+                // карту заголовка ответа. Первый параметр — это имя заголовка, а
+                // второй параметр — значение заголовка.
+            </i>
+                w.Header().Set("Allow", http.MethodPost)
+                w.WriteHeader(405)
+                w.Write([]byte("Method Not Allowed"))
+                return
+            }
+            w.Write([]byte("Create a new snippet..."))
     }
     ...</code></pre>
     
@@ -517,15 +568,19 @@
         URL-адрес /snippet/create, например</p>
     
     <pre><code class="terminal">$ curl -i -X PUT http://localhost:4000/snippet/create
-        HTTP/1.1 405 Method Not Allowed
-        Allow: POST
-        Date: Thu, 02 Aug 2023 13:01:16 GMT
-        Content-Length: 18
-        Content-Type: text/plain; charset=utf-8
-        Method Not Allowed</code></pre>
-    <p>Обратите внимание, что ответ теперь включает заголовок Allow: POST?</p>
+        
+        ответ сервера: 
+                        HTTP/1.1 405 Method Not Allowed
+                        Allow: POST
+                        Date: Thu, 02 Aug 2023 13:01:16 GMT
+                        Content-Length: 18
+                        Content-Type: text/plain; charset=utf-8
+                        Method Not Allowed
+    </code></pre>
+
+    <p>Обратили внимание, что ответ теперь включает заголовок Allow: POST?</p>
     
-    <h3>Шорткат http.Error</h3>
+    <h3>Шорткат http.Error (вспомогательная функция)</h3>
     <p>Если вы хотите отправить код состояния, отличный от 200, и тело ответа в виде обычного текста (как в приведенном
         выше коде), то это хорошая возможность использовать ярлык http.Error(). Это
         легкая вспомогательная функция, которая принимает заданное сообщение и код состояния, а затем
@@ -534,42 +589,56 @@
     <pre><code>File: main.go
         package main
         ...
+
         func createSnippet(w http.ResponseWriter, r *http.Request) {
-        if r.Method != http.MethodPost {
-        w.Header().Set("Allow", http.MethodPost)
-        // Use the http.Error() function to send a 405 status code and "Method Not
-        // Allowed" string as the response body.
-        http.Error(w, "Method Not Allowed", 405)
-        return
-        }
-        w.Write([]byte("Create a new snippet..."))
+            if r.Method != http.MethodPost {
+                w.Header().Set("Allow", http.MethodPost)
+            <i>
+                // Используйте функцию http.Error() для отправки кода состояния 405 и
+                // строки «Метод не разрешен» в качестве тела ответа.
+            </i>
+                http.Error(w, "Method Not Allowed", 405)
+                return
+            }
+            w.Write([]byte("Create a new snippet..."))
     }
     ...</code></pre>
     <p>С точки зрения функциональности это почти то же самое. Самая большая разница в том, что теперь мы
         передаем наш http.ResponseWriter другой функции, которая отправляет ответ пользователю
         вместо нас.</p>
     <p>Схема передачи http.ResponseWriter другим функциям очень распространена в Go,
-        и мы будем много делать в этой книге. На практике методы w.Write() и w.WriteHeader() напрямую используются довольно редко,
-        как мы это делали до сих пор. Но я
-        хотел представить их заранее, потому что они лежат в основе более продвинутых (и интересных!) способов отправки ответов.
+        и мы будем много раз делать так в этой книге. На практике методы w.Write() и w.WriteHeader() напрямую используются довольно редко,
+        как мы это делали до сих пор. Но я хотел представить их заранее, потому что они лежат в основе более продвинутых (и интересных!) способов отправки ответов.
     </p>
+
     <h3>Дополнительная информация</h3>
+
     <h4>Управление картой заголовков</h4>
-    <p>В приведенном выше коде мы использовали w.Header().Set() для добавления нового заголовка к заголовку ответа.
-        карта. Но есть также методы Add(), Del() и Get(), которые вы
+    <p>В приведенном выше коде мы использовали w.Header().Set() для добавления нового заголовка в
+        карту заголовков ответа. Но есть также методы Add(), Del() и Get(), которые вы
         также можете использовать для чтения и управления картой заголовков.
     </p>
-    <pre><code>// Set a new cache-control header. If an existing "Cache-Control" header exists
-        // it will be overwritten.
+    <pre><code>
+    <i> 
+        // Устанавливаем новый заголовок управления кэшем. Если существует существующий заголовок
+        // «Cache-Control», он будет перезаписан.
+    </i>
         w.Header().Set("Cache-Control", "public, max-age=31536000")
-        // In contrast, the Add() method appends a new "Cache-Control" header and can
-        // be called multiple times.
+    <i>
+        // Напротив, метод Add() добавляет новый заголовок «Cache-Control» и
+        // может вызываться несколько раз.
+    </i>
         w.Header().Add("Cache-Control", "public")
         w.Header().Add("Cache-Control", "max-age=31536000")
-        // Delete all values for the "Cache-Control" header.
+    <i>
+        // Удалить все значения заголовка «Cache-Control».
+    </i>
         w.Header().Del("Cache-Control")
-        // Retrieve the first value for the "Cache-Control" header.
+    <i>    
+        // Получаем первое значение заголовка «Cache-Control».
+    </i>
         w.Header().Get("Cache-Control")</code></pre>
+
     <h3>Генерируемые системой заголовки и анализ контента</h3>
     <p>При отправке ответа Go автоматически установит для вас три системных заголовка:
         Date, Content-Length и Content-Type.</p>
@@ -578,13 +647,16 @@
         Если эта функция не может угадать тип контента, Go вернется к установке заголовка
         Content-Type: application/octet-stream вместо этого.
         </p>
-    <p>Функция http.DetectContentType() обычно работает довольно хорошо, но общая проблема
-        для веб-разработчиков, плохо знакомых с Go, заключается в том, что она не может отличить JSON от обычного текста. Итак, по
-        по умолчанию ответы JSON будут отправляться с Content-Type: text/plain; кодировка =
-        заголовок utf-8. Вы можете предотвратить это, установив правильный заголовок вручную следующим образом:</p>
-    <pre><code>w.Header().Set("Content-Type", "application/json")
-        w.Write([]byte(`{"name":"turamant"}`))</code></pre>    
-    <h3>Канонизация заголовка</h3>
+    <p>Функция http.DetectContentType() в целом работает довольно хорошо, но частая ошибка
+        веб-разработчиков, впервые знакомых с Go, заключается в том, что она не может отличить JSON от обычного текста. Таким образом
+        , по умолчанию ответы JSON будут отправляться с типом контента: text/plain; charset=utf-8
+        заголовок. Вы можете предотвратить это, установив правильный заголовок вручную следующим образом
+        :
+    </p>
+    <pre><code>
+        w.Header().Set("Content-Type", "application/json")
+        w.Write([]byte(`{"name":"Alex"}`))
+    </code></pre>
     <p>Когда вы используете методы Add(), Get(), Set() и Del() на карте заголовков, имя заголовка
         всегда будет канонизироваться с помощью
         функции textproto.CanonicalMIMEHeaderKey(). Это преобразует первую букву и любую букву, следующую за дефисом, в верхний регистр, а
@@ -637,11 +709,11 @@
     <p>Чтобы это работало, нам нужно обновить функцию обработчика showSnippet, чтобы она выполняла две вещи:</p>
     <ol>
         <li>Она должна получать значение параметра id из строки запроса URL, что мы
-            можем сделать с помощью r.URL.Query(). .Получить() метод. Это всегда будет возвращать строковое значение для
+            можем сделать с помощью r.URL.Query().Get() метода. Это всегда будет возвращать строковое значение для
             параметра или пустую строку "", если соответствующий параметр не существует.
             </li>
         <li>Поскольку параметр id является ненадежным пользовательским вводом, мы должны проверить его, чтобы убедиться, что
-            он разумен и разумен. Для нашего приложения Snippetbox мы хотим проверить
+            он разумен. Для нашего приложения Snippetbox мы хотим проверить
             что он содержит положительное целое значение. Мы можем сделать это, попытавшись преобразовать строковое
             значение в целое число с помощью функции strconv.Atoi(), а затем проверив, что значение
             больше нуля.</li>
@@ -649,40 +721,46 @@
     <p>Вот как:</p>
     <pre><code>File: main.go
         package main
+
         import (
-        "fmt" // New import
-        "log"
-        "net/http"
-        "strconv" // New import
+            "fmt" // новый импорт
+            "log"
+            "net/http"
+            "strconv" // новый импорт
         )
         ...
+
         func showSnippet(w http.ResponseWriter, r *http.Request) {
-        // Extract the value of the id parameter from the query string and try to
-        // convert it to an integer using the strconv.Atoi() function. If it can't
-        // be converted to an integer, or the value is less than 1, we return a 404 page
-        // not found response.
-        id, err := strconv.Atoi(r.URL.Query().Get("id"))
-        if err != nil || id < 1 {
-        http.NotFound(w, r)
-        return
-        }
-        // Use the fmt.Fprintf() function to interpolate the id value with our response
-        // and write it to the http.ResponseWriter.
-        fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
+        <i>
+            // Извлекаем значение параметра id из строки запроса и пытаемся
+            // преобразовать его в целое число с помощью функции strconv.Atoi(). Если его 
+            // невозможно преобразовать в целое число или значение меньше 1, мы возвращаем
+            // ответ 404: страница не найдена.
+        </i>
+            id, err := strconv.Atoi(r.URL.Query().Get("id"))
+            if err != nil || id < 1 {
+                http.NotFound(w, r)
+                return
+            }
+        <i>
+            // Используйте функцию fmt.Fprintf(), чтобы интерполировать значение id с нашим ответом
+            // и записать его в http.ResponseWrite
+        </i>    
+            fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
     }
     ...</code></pre>
     <p>Давайте попробуем это.</p>
-    <p>Перезапустите приложение и попробуйте перейти по URL-адресу, например http://localhost:4000/snippet?id=123.
+    <p>Перезапустите приложение и попробуйте перейти по URL-адресу, например <span>http://localhost:4000/snippet?id=123</span>
         Вы должны увидеть ответ, который выглядит примерно так:</p>
     <p><img src="static/images/picture2.6.png"/></p>
     <p>Вы также можете попробовать посетить некоторые URL-адреса, которые имеют недопустимые значения для параметра id
         или вообще не имеют параметра. Например:</p>
     <ul>
-        <li>http://localhost:4000/snippet</li>
-        <li>http://localhost:4000/snippet?id=-1</li>
-        <li>http://localhost:4000/snippet?id=foo</li>
+        <li><span>http://localhost:4000/snippet</span></li>
+        <li><span>http://localhost:4000/snippet?id=-1</span></li>
+        <li><span>http://localhost:4000/snippet?id=foo</span></li>
     </ul>
-    <p>Для всех этих запросов вы должны получить страницу 404, а не нашел отклик.</p>
+    <p>На все эти запросы вы должны получить ответ 404: страница не найдена.</p>
     
     <h3>Интерфейс io.Writer</h3>
     <p>Приведенный выше код представил еще одну новую вещь за кулисами. Если вы посмотрите
@@ -757,49 +835,57 @@
 
 <pre><code>File: cmd/web/main.go
     package main
+
     import (
-    "log"
-    "net/http"
+        "log"
+        "net/http"
     )
+
     func main() {
-    mux := http.NewServeMux()
-    mux.HandleFunc("/", home)
-    mux.HandleFunc("/snippet", showSnippet)
-    mux.HandleFunc("/snippet/create", createSnippet)
-    log.Println("Starting server on :4000")
-    err := http.ListenAndServe(":4000", mux)
-    log.Fatal(err)
+        mux := http.NewServeMux()
+        mux.HandleFunc("/", home)
+        mux.HandleFunc("/snippet", showSnippet)
+        mux.HandleFunc("/snippet/create", createSnippet)
+        
+        log.Println("Starting server on :4000")
+        err := http.ListenAndServe(":4000", mux)
+        log.Fatal(err)
     }</code></pre>
 <pre><code>File: cmd/web/handlers.go
     package main
+
     import (
-    "fmt"
-    "net/http"
-    "strconv"
+        "fmt"
+        "net/http"
+        "strconv"
     )
+
     func home(w http.ResponseWriter, r *http.Request) {
-    if r.URL.Path != "/" {
-    http.NotFound(w, r)
-    return
+        if r.URL.Path != "/" {
+            http.NotFound(w, r)
+            return
+        }
+        w.Write([]byte("Hello from Snippetbox"))
     }
-    w.Write([]byte("Hello from Snippetbox"))
-    }
+
     func showSnippet(w http.ResponseWriter, r *http.Request) {
-    id, err := strconv.Atoi(r.URL.Query().Get("id"))
-    if err != nil || id < 1 {
-    http.NotFound(w, r)
-    return
+        id, err := strconv.Atoi(r.URL.Query().Get("id"))
+        if err != nil || id < 1 {
+            http.NotFound(w, r)
+            return
+        }
+        fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
     }
-    fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
-    }
+
     func createSnippet(w http.ResponseWriter, r *http.Request) {
-    if r.Method != http.MethodPost {
-    w.Header().Set("Allow", http.MethodPost)
-    http.Error(w, "Method Not Allowed", 405)
-    return
-    }
-    w.Write([]byte("Create a new snippet..."))
+        if r.Method != http.MethodPost {
+            w.Header().Set("Allow", http.MethodPost)
+            http.Error(w, "Method Not Allowed", 405)
+            return
+        }
+        w.Write([]byte("Create a new snippet..."))
     }</code></pre>
+
 <p>Итак, теперь наше веб-приложение состоит из нескольких файлов исходного кода Go в
     каталоге cmd/web. Чтобы запустить их, мы можем использовать команду go run следующим образом:</p>
 
@@ -840,6 +926,7 @@
         &lt;/body&gt;
     &lt;/html&gt;
 </code></pre>
+
 <p class="note">Примечание. В этой книге мы будем использовать соглашение об именах..tmpl для
     файлов шаблонов, гдеявляется страницей, частичной или макетом. Возможность
     определить роль шаблона по имени файла поможет нам, когда дело дойдет до
@@ -855,36 +942,45 @@
 
 <pre><code>File: cmd/web/handlers.go
     package main
+
     import (
-    "fmt"
-    "html/template" // New import
-    "log" // New import
-    "net/http"
-    "strconv"
+        "fmt"
+        "html/template" <i>// новый импорт</i>
+        "log"           <i>// новый импорт</i>
+        "net/http"
+        "strconv"
     )
+
     func home(w http.ResponseWriter, r *http.Request) {
-    if r.URL.Path != "/" {
-    http.NotFound(w, r)
-    return
-    }
-    // Use the template.ParseFiles() function to read the template file into a
-    // template set. If there's an error, we log the detailed error message and use
-    // the http.Error() function to send a generic 500 Internal Server Error
-    // response to the user.
-    ts, err := template.ParseFiles("./ui/html/home.page.tmpl")
-    if err != nil {
-    log.Println(err.Error())
-    http.Error(w, "Internal Server Error", 500)
-    return
-    }
-    // We then use the Execute() method on the template set to write the template
-    // content as the response body. The last parameter to Execute() represents any
-    // dynamic data that we want to pass in, which for now we'll leave as nil.
-    err = ts.Execute(w, nil)
-    if err != nil {
-    log.Println(err.Error())
-    http.Error(w, "Internal Server Error", 500)
-    }
+        if r.URL.Path != "/" {
+            http.NotFound(w, r)
+            return
+        }
+    <i>
+        // Используйте функцию template.ParseFiles() для чтения файла шаблона в
+        // набор шаблонов. Если возникает ошибка, мы регистрируем подробное сообщение об ошибке
+        // и используем функцию http.Error() для отправки пользователю общего ответа 
+        // 500 Internal Server Error .
+    </i>
+
+        ts, err := template.ParseFiles("./ui/html/home.page.tmpl")
+
+        if err != nil {
+            log.Println(err.Error())
+            http.Error(w, "Internal Server Error", 500)
+            return
+        }
+    <i>
+        // Затем мы используем метод Execute() для набора шаблонов, чтобы записать
+        // содержимое шаблона в качестве тела ответа. Последний параметр Execute() представляет
+        // любые динамические данные, которые мы хотим передать, и которые пока оставим равными нулю.
+    </i>
+        err = ts.Execute(w, nil)
+
+        if err != nil {
+            log.Println(err.Error())
+            http.Error(w, "Internal Server Error", 500)
+        }
 }
 ...</code></pre>
 <p>Важно отметить, что путь к файлу, который вы передаете
@@ -964,31 +1060,40 @@
 <pre><code>File: cmd/web/handlers.go
     package main
     ...
+
     func home(w http.ResponseWriter, r *http.Request) {
-    if r.URL.Path != "/" {
-    http.NotFound(w, r)
-    return
-    }
-    // Initialize a slice containing the paths to the two files. Note that the
-    // home.page.tmpl file must be the *first* file in the slice.
-    files := []string{
-    "./ui/html/home.page.tmpl",
-    "./ui/html/base.layout.tmpl",
-    }
-    // Use the template.ParseFiles() function to read the files and store the
-    // templates in a template set. Notice that we can pass the slice of file paths
-    // as a variadic parameter?
-    ts, err := template.ParseFiles(files...)
-    if err != nil {
-    log.Println(err.Error())
-    http.Error(w, "Internal Server Error", 500)
-    return
-    }
-    err = ts.Execute(w, nil)
-    if err != nil {
-    log.Println(err.Error())
-    http.Error(w, "Internal Server Error", 500)
-    }
+        if r.URL.Path != "/" {
+            http.NotFound(w, r)
+            return
+        }
+    <i>    
+        // Инициализируем фрагмент, содержащий пути к двум файлам. Обратите внимание, что
+        // фaйл home.page.tmpl должен быть *первым* файлом в срезе.
+    </i>
+        files := []string{
+            "./ui/html/home.page.tmpl",
+            "./ui/html/base.layout.tmpl",
+        }
+    <i>
+        // Используйте функцию template.ParseFiles() для чтения файлов и сохранения
+        // шаблонов в наборе шаблонов. Обратите внимание, что мы можем передать фрагмент путей к файлам
+        // как переменный параметр?
+    </i>
+
+        ts, err := template.ParseFiles(files...)
+
+        if err != nil {
+            log.Println(err.Error())
+            http.Error(w, "Internal Server Error", 500)
+            return
+        }
+
+        err = ts.Execute(w, nil)
+
+        if err != nil {
+            log.Println(err.Error())
+            http.Error(w, "Internal Server Error", 500)
+        }
 }
 ...</code></pre>
 <p>Итак, теперь, вместо непосредственного содержания HTML, наш набор шаблонов содержит 3 именованных шаблона
@@ -1046,28 +1151,34 @@
 <pre><code>File: cmd/web/handlers.go
     package main
     ...
+
     func home(w http.ResponseWriter, r *http.Request) {
-    if r.URL.Path != "/" {
-    http.NotFound(w, r)
-    return
-    }
-    // Include the footer partial in the template files.
-    files := []string{
-    "./ui/html/home.page.tmpl",
-    "./ui/html/base.layout.tmpl",
-    "./ui/html/footer.partial.tmpl",
-    }
-    ts, err := template.ParseFiles(files...)
-    if err != nil {
-    log.Println(err.Error())
-    http.Error(w, "Internal Server Error", 500)
-    return
-    }
-    err = ts.Execute(w, nil)
-    if err != nil {
-    log.Println(err.Error())
-    http.Error(w, "Internal Server Error", 500)
-    }
+        if r.URL.Path != "/" {
+            http.NotFound(w, r)
+            return
+        }
+    <i>
+        // Включить часть нижнего колонтитула в файлы шаблонов.
+    </i>   
+        files := []string{
+            "./ui/html/home.page.tmpl",
+            "./ui/html/base.layout.tmpl",
+            "./ui/html/footer.partial.tmpl",
+        }
+
+        ts, err := template.ParseFiles(files...)
+
+        if err != nil {
+            log.Println(err.Error())
+            http.Error(w, "Internal Server Error", 500)
+            return
+        }
+        err = ts.Execute(w, nil)
+
+        if err != nil {
+            log.Println(err.Error())
+            http.Error(w, "Internal Server Error", 500)
+        }
 }
 ...</code></pre>
 <p>После перезапуска сервера ваш базовый шаблон теперь должен вызывать шаблон нижнего колонтитула
@@ -1157,26 +1268,32 @@
 <p>Откройте файл main.go и добавьте следующий код, чтобы файл в итоге выглядел так:</p>
 <pre><code>File: cmd/web/main.go
     package main
+
     import (
-    "log"
-    "net/http"
+        "log"
+        "net/http"
     )
+
     func main() {
-    mux := http.NewServeMux()
-    mux.HandleFunc("/", home)
-    mux.HandleFunc("/snippet", showSnippet)
-    mux.HandleFunc("/snippet/create", createSnippet)
-    // Create a file server which serves files out of the "./ui/static" directory.
-    // Note that the path given to the http.Dir function is relative to the project
-    // directory root.
-    fileServer := http.FileServer(http.Dir("./ui/static/"))
-    // Use the mux.Handle() function to register the file server as the handler for
-    // all URL paths that start with "/static/". For matching paths, we strip the
-    // "/static" prefix before the request reaches the file server.
-    mux.Handle("/static/", http.StripPrefix("/static", fileServer))
-    log.Println("Starting server on :4000")
-    err := http.ListenAndServe(":4000", mux)
-    log.Fatal(err)
+        mux := http.NewServeMux()
+        mux.HandleFunc("/", home)
+        mux.HandleFunc("/snippet", showSnippet)
+        mux.HandleFunc("/snippet/create", createSnippet)
+    <i>
+        // Создаем файловый сервер, который обслуживает файлы из каталога "./ui/static".
+        // Обратите внимание, что путь, заданный функции http.Dir, указан относительно
+        // корня каталога проекта.
+    </i>
+        fileServer := http.FileServer(http.Dir("./ui/static/"))
+    <i>
+        // Используйте функцию mux.Handle(), чтобы зарегистрировать файловый сервер в качестве обработчика
+        // всех URL-путей, начинающихся с «/static/». Для сопоставления путей мы удаляем
+        // префикс "/static" до того, как запрос достигнет файлового сервера.
+    </i>
+        mux.Handle("/static/", http.StripPrefix("/static", fileServer))
+        log.Println("Starting server on :4000")
+        err := http.ListenAndServe(":4000", mux)
+        log.Fatal(err)
 }</code></pre>
 <p>После этого перезапустите приложение и откройте http://localhost:4000/static/ в
     браузере. Вы должны увидеть список папок ui/static с возможностью навигации, который
@@ -1363,14 +1480,6 @@
     быстрым, недостатком является то, что вам нужно знать (и защищаться) от условий гонки
     при доступе к общим ресурсам от ваших обработчиков.
 </p>
-
-
-
-
-
-
-
-
 
 </body>
 </html>

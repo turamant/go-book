@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="static/css/main.css">
+    <title>Page 12</title>
+</head>
+<body>
+<h1>Глава 12. Использование контекста запроса(Request Context)</h1>
+<p>На данный момент наша логика аутентификации пользователя состоит из простой проверки наличия
+    значения «authenticatedUserID» в данных его сеанса, например:</p>
+<pre><code>
+    func (app *application) isAuthenticated(r *http.Request) bool {
+        return app.session.Exists(r, "authenticatedUserID")
+        }
+</code></pre>
+<p>Мы могли бы сделать это более надежным, проверив таблицу базы данных наших пользователей, чтобы убедиться, что
+    значение «authenticatedUserID» допустимо и что учетная запись пользователя, к которой оно относится, все еще
+    активна (т. е. мы не деактивировали учетную запись пользователя с момента его последнего входа в систему). ).
+<p>Но есть небольшая проблема с выполнением этой дополнительной проверки базы данных.</p>
+    Наш помощник isAuthenticated() может вызываться несколько раз в каждом цикле запроса. В настоящее время
+    мы используем его дважды — один раз в промежуточном программном обеспечении requireAuthentication() и снова в
+    помощнике addDefaultData(). Таким образом, если мы проверим базу данных напрямую с помощью помощника isAuthenticated()
+    , мы в конечном итоге будем делать дублированные обращения к базе данных во время каждого
+    запроса. Не очень эффективно.</p>
+<p>Лучшим подходом было бы выполнить эту проверку в некотором промежуточном программном обеспечении, чтобы определить,
+    исходит ли текущий запрос от аутентифицированного и активного пользователя или нет, а затем передать
+    эту информацию всем последующим обработчикам в цепочке.</p>
+<p>Итак, как мы это сделаем? Введите контекст запроса.</p>
+<p>В этом разделе вы узнаете:</p>
+<ul>
+    <li>Что такое контекст запроса, как его использовать и когда его уместно использовать.</li>
+    <li>Как использовать контекст запроса на практике для передачи информации о текущем пользователе
+        между вашими обработчиками.</li>
+</ul>
+
+<h2>12.1 Как работает контекст запроса</h2>
+<p>В каждый http.Request, который обрабатывают наши обработчики, встроен объект context.Context
+    , который мы можем использовать для хранения информации в течение всего времени существования запроса.</p>
+<p>Как я уже намекал, в веб-приложении обычно это используется для передачи
+    информации между вашими частями промежуточного программного обеспечения и другими обработчиками.</p>
+<p>В нашем случае мы хотим использовать его, чтобы проверить, прошел ли пользователь аутентификацию и активен один раз в каком-то
+    промежуточном программном обеспечении, и если да, то сделать эту информацию доступной для всех других наших
+    промежуточных программ и обработчиков.</p>
+<p>Начнем с теории и объясним синтаксис работы с контекстом запроса. Затем,
+    в следующей главе, мы снова углубимся в конкретику и продемонстрируем, как использовать его в
+    нашем приложении.</p>
+
+<h3>Синтаксис контекста запроса.</h3>
+<p>Основной код для добавления информации в контекст запроса выглядит следующим образом:</p>
+<pre><code>
+// Where r is a *http.Request...
+
+ctx := r.Context()
+ctx = context.WithValue(ctx, "isAuthenticated", true)
+r = r.WithContext(ctx)
+</code></pre>
+
+<p>Давайте рассмотрим это построчно.</p>
+<ul>
+    <li>Сначала мы используем метод r.Context() для получения существующего контекста из запроса и
+        присваиваем его переменной ctx.</li>
+    <li>Затем мы используем метод context.WithValue() для создания новой копии существующего
+        контекста, содержащей ключ «isAuthenticated» и значение true.</li>
+    <li>Затем, наконец, мы используем метод r.WithContext() для создания копии запроса,
+        содержащей наш новый контекст.</li>
+</ul>
+<p class="note">
+    Важно: обратите внимание: на самом деле мы не обновляем контекст запроса напрямую.
+    Мы создаем новую копию объекта http.Request с нашим новым
+    контекстом.
+</p>
+    
+<p>Я также должен отметить, что для ясности я сделал этот фрагмент кода немного более подробным, чем нужно
+    . Обычно его немного сокращают так:</p>
+<pre><code>
+    ctx = context.WithValue(r.Context(), "isAuthenticated", true)
+    r = r.WithContext(ctx)
+</code></pre>
+
+<p>Вот как вы добавляете данные в контекст запроса. Но как насчет того, чтобы получить его снова?</p>
+<p>Здесь важно объяснить, что «за кулисами» значения контекста запроса хранятся
+    с типом интерфейса {}. А это означает, что после извлечения их из
+    контекста вам нужно будет утвердить их исходный тип, прежде чем использовать их.</p>
+<p>Чтобы получить значение, нам нужно использовать метод r.Context().Value(), например:</p>
+<pre><code>
+    isAuthenticated, ok := r.Context().Value("isAuthenticated").(bool)
+
+    if !ok {
+        return errors.New("не удалось преобразовать значение в bool")
+    }
+</code></pre>
+
+<h3>Как избежать конфликтов ключей</h3>
+<p>В приведенных выше примерах кода я использовал строку «isAuthenticated» в качестве ключа для хранения
+    и получения данных из контекста запроса. Но это не рекомендуется, поскольку
+    существует риск того, что другие сторонние пакеты, используемые вашим приложением, также захотят хранить
+    данные с использованием ключа «isAuthenticated». А это может привести к коллизии имен и
+    ошибкам.</p>
+<p>Чтобы избежать этого, рекомендуется создать свой собственный тип, который вы сможете использовать для своих
+    контекстных ключей. Расширяя наш пример кода, гораздо лучше сделать что-то вроде этого:</p>
+
+<pre><code>
+type contextKey string
+
+const contextKeyIsAuthenticated = contextKey("isAuthenticated")
+...
+
+ctx := r.Context()
+ctx = context.WithValue(ctx, contextKeyIsAuthenticated, true)
+r = r.WithContext(ctx)
+...
+
+isAuthenticated, ok := r.Context().Value(contextKeyIsAuthenticated).(bool)
+if !ok {
+    return errors.New("не удалось преобразовать значение в bool")
+}
+</code></pre>
+
+<h2>12.2 Контекст запроса для аутентификации/авторизации</h2>
+<p>Итак, закончив эти объяснения, давайте воспользуемся функцией контекста запроса в нашем
+    приложении.</p>
+<p>Мы начнем с возвращения к нашему файлу pkg/models/mysql/users.go и обновления
+    метода UserModel.Get(), чтобы он извлекал информацию о конкретном пользователе из базы
+    данных следующим образом:</p>
+
+<pre><code>
+File: pkg/models/mysql/users.go
+
+package mysql
+
+import (
+    "database/sql"
+    "errors"
+    "strings"
+    "turamant.net/snippetbox/pkg/models"
+    "github.com/go-sql-driver/mysql"
+    "golang.org/x/crypto/bcrypt"
+)
+
+type UserModel struct {
+    DB *sql.DB
+}
+...
+
+func (m *UserModel) Get(id int) (*models.User, error) {
+    u := &models.User{}
+    stmt := `SELECT id, name, email, created, active FROM users WHERE id = ?`
+    err := m.DB.QueryRow(stmt, id).Scan(&u.ID, &u.Name, &u.Email, &u.Created, &u.Active)
+    if err != nil {
+        if errors.Is(err, sql.ErrNoRows) {
+            return nil, models.ErrNoRecord
+        } else {
+            return nil, err
+        }
+    }
+    return u, nil
+}
+</code></pre>
+
+<p>Затем откройте файл cmd/web/main.go и определите свой собственный тип contextKey и
+    переменную contextKeyIsAuthenticated, чтобы у нас был уникальный ключ, который мы можем использовать для хранения и
+    получения данных пользователя из контекста запроса.</p>
+<pre><code>
+File: cmd/web/main.go
+
+package main
+
+import (
+    "crypto/tls"
+    "database/sql"
+    "flag"
+    "html/template"
+    "log"
+    "net/http"
+    "os"
+    "time"
+    "turamant.net/snippetbox/pkg/models/mysql"
+    _ "github.com/go-sql-driver/mysql"
+    "github.com/golangcollege/sessions"
+)
+
+type contextKey string
+
+const contextKeyIsAuthenticated = contextKey("isAuthenticated")
+
+type application struct {
+    errorLog *log.Logger
+    infoLog *log.Logger
+    session *sessions.Session
+    snippets *mysql.SnippetModel
+    templateCache map[string]*template.Template
+    users *mysql.UserModel
+}
+...
+</code></pre>
+<p>А теперь самое интересное. Давайте создадим новое промежуточное программное обеспечение Authenticate(), которое извлекает
+    идентификатор пользователя из данных его сеанса, проверяет базу данных, чтобы убедиться, что идентификатор действителен и подходит для активного пользователя, а затем обновляет контекст запроса, включая эту информацию.</p>
+<p>Вот код:</p>
+<pre><code>
+File: cmd/web/middleware.go
+
+package main
+
+import (
+    "context" // Новый импорт
+    "errors" // Новый импорт
+    "fmt"
+    "net/http"
+    "turamant.net/snippetbox/pkg/models" // Новыйй импорт
+    "github.com/justinas/nosurf"
+)
+...
+func (app *application) authenticate(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        // Проверьте, существует ли в сеансе значение authenticatedUserID. Если этого нет,
+        // вызовите следующий обработчик в цепочке как обычно.
+        exists := app.session.Exists(r, "authenticatedUserID")
+        if !exists {
+            next.ServeHTTP(w, r)
+            return
+        }
+
+        // Получить информацию о текущем пользователе из базы данных. Если соответствующая
+        // запись не найдена или текущий пользователь деактивирован, удалите
+        // (недействительное) значение authentifiedUserID из его сеанса и вызовите следующий
+        // обработчик в цепочке, как обычно.
+        user, err := app.users.Get(app.session.GetInt(r, "authenticatedUserID"))
+        if errors.Is(err, models.ErrNoRecord) || !user.Active {
+            app.session.Remove(r, "authenticatedUserID")
+            next.ServeHTTP(w, r)
+            return
+        } else if err != nil {
+            app.serverError(w, err)
+            return
+        }
+        // В противном случае мы знаем, что запрос исходит от активного, аутентифицированного
+        // пользователя. Мы создаем новую копию запроса с истинным логическим значением
+        // добавленным в контекст запроса, чтобы указать это, и вызываем следующий обработчик
+        // в цепочке "используя эту новую копию запроса".
+        ctx := context.WithValue(r.Context(), contextKeyIsAuthenticated, true)
+        next.ServeHTTP(w, r.WithContext(ctx))
+        })
+}
+</code></pre>
+<p>Здесь важно подчеркнуть следующее различие:</p>
+<ul>
+    <li>Когда у нас нет аутентифицированного и активного пользователя, мы передаем исходный и
+        неизмененный *http.Request следующему обработчику в цепочке.</li>
+    <li>Когда у нас есть аутентифицированный и активный пользователь, мы создаем копию запроса с
+        ключом contextKeyIsAuthenticated и истинным значением, хранящимся в контексте запроса. Затем мы
+        передаем эту копию *http.Request следующему обработчику в цепочке.</li>
+</ul>
+    
+<p>Хорошо, давайте обновим файл cmd/web/routes.go, включив промежуточное программное обеспечение Authenticate()
+    в нашу «динамическую» цепочку промежуточного программного обеспечения:</p>
+<pre><code>
+File: cmd/web/routes.go
+
+package main
+
+import (
+    "net/http"
+    "github.com/bmizerany/pat"
+    "github.com/justinas/alice"
+)
+
+func (app *application) routes() http.Handler {
+    standardMiddleware := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
+    
+    // Добавьте в цепочку промежуточное программное обеспечение Authenticate().
+    dynamicMiddleware := alice.New(app.session.Enable, noSurf, app.authenticate)
+
+    mux := pat.New()
+
+    mux.Get("/", dynamicMiddleware.ThenFunc(app.home))
+    mux.Get("/snippet/create", dynamicMiddleware.Append(app.requireAuthentication).ThenFunc(app.createSnippetForm))
+    mux.Post("/snippet/create", dynamicMiddleware.Append(app.requireAuthentication).ThenFunc(app.createSnippet))
+    mux.Get("/snippet/:id", dynamicMiddleware.ThenFunc(app.showSnippet))
+    mux.Get("/user/signup", dynamicMiddleware.ThenFunc(app.signupUserForm))
+    mux.Post("/user/signup", dynamicMiddleware.ThenFunc(app.signupUser))
+    mux.Get("/user/login", dynamicMiddleware.ThenFunc(app.loginUserForm))
+    mux.Post("/user/login", dynamicMiddleware.ThenFunc(app.loginUser))
+    mux.Post("/user/logout", dynamicMiddleware.Append(app.requireAuthentication).ThenFunc(app.logoutUser))
+
+    fileServer := http.FileServer(http.Dir("./ui/static/"))
+    mux.Get("/static/", http.StripPrefix("/static", fileServer))
+
+    return standardMiddleware.Then(mux)
+}
+</code></pre>
+<p>Последнее, что нам нужно сделать, это обновить наш помощник isAuthenticated(), чтобы вместо
+    проверки данных сеанса он теперь проверял контекст запроса, чтобы определить,
+    аутентифицирован ли пользователь или нет.</p>
+<pre><code>
+File: cmd/web/helpers.go
+
+package main
+...
+
+func (app *application) isAuthenticated(r *http.Request) bool {
+    isAuthenticated, ok := r.Context().Value(contextKeyIsAuthenticated).(bool)
+    if !ok {
+        return false
+    }
+    return isAuthenticated
+}
+</code></pre>
+
+<p>Здесь важно отметить, что если в контексте с ключом contextKeyIsAuthenticated нет значения
+    или базовое значение не является логическим, то
+    утверждение этого типа завершится неудачей. В этом случае мы принимаем «безопасный» вариант возврата и возвращаем false (т. е. мы предполагаем, что
+    пользователь не аутентифицирован).</p>
+<p>Если вы запустите приложение еще раз, все должно скомпилироваться правильно.</p>
+<p>Если хотите, попробуйте войти в приложение как определенный пользователь. Затем откройте MySQL и обновите
+    запись для этого пользователя, чтобы активное значение было установлено на FALSE. Например:</p>
+<p class="terminal">
+    mysql> USE snippetbox;
+    mysql> UPDATE users SET active = FALSE WHERE email = 'bob@example.com';
+</p>
+<p>А когда вы вернетесь в браузер и обновите страницу, приложение теперь будет
+    достаточно умным, чтобы распознать, что пользователь был деактивирован, и вы обнаружите, что себя рассматривают как
+    неаутентифицированного (вышедшего из системы) пользователя.</p>
+
+<h3>Дополнительная информация</h3>
+<h4>Неправильное использование контекста запроса</h4>
+<p>Важно подчеркнуть, что контекст запроса следует использовать только для хранения информации,
+    относящейся к сроку действия конкретного запроса. Документация Go для context.Context
+    предупреждает:</p>
+<p class="note"><i>используйте значения контекста только для данных области запроса, которые проходят через процессы и API.</i></p>
+<p>Это означает, что вам не следует использовать его для передачи зависимостей, существующих вне времени существования запроса
+    , таких как средства ведения журнала, кэши шаблонов и пул подключений к базе данных, вашему
+    промежуточному программному обеспечению и обработчикам.</p>
+<p>Из соображений безопасности типов и ясности кода почти всегда лучше
+    явно сделать эти зависимости доступными для ваших обработчиков, либо создав методы обработчиков.
+    против структуры приложения (как в этой книге) или передачи их в замыкании (как
+    в этом Gist).</p>
+</body>
+</html>

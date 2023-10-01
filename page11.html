@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="static/css/main.css">
+    <title>Page 11</title>
+</head>
+<body>
+<h1>Глава 11. Аутентификация пользователя</h1>
+<p>В этом разделе книги мы добавим в наше
+    приложение некоторые функции аутентификации пользователей, чтобы только зарегистрированные пользователи, вошедшие в систему, могли создавать новые фрагменты. Не вошедшие в систему
+    пользователи по-прежнему смогут просматривать фрагменты, а также смогут зарегистрировать учетную запись.</p>
+<p>Для нашего приложения этот процесс будет выглядеть следующим образом:</p>
+<ol>
+    <li>Пользователь зарегистрируется, посетив форму по адресу <span>/user/signup</span> и введя свое имя,
+        адрес электронной почты и пароль. Мы сохраним эту информацию в новой таблице базы данных пользователей
+        (которую мы создадим чуть позже).</li>
+    <li>Пользователь войдет в систему, посетив форму по адресу <span>/user/login</span> и введя свой адрес электронной почты и
+        пароль.</li>
+    <li>Затем мы проверяем базу данных, чтобы увидеть, соответствуют ли введенные ими адрес электронной почты и пароль одному из
+        пользователей в таблице пользователей. Если есть совпадение, пользователь успешно прошел аутентификацию,
+        и мы добавляем соответствующее значение идентификатора пользователя к данным его сеанса, используя ключ
+        «authenticatedUserID».</li>
+    <li>При получении последующих запросов мы можем проверить данные сеанса пользователя на наличие
+        Значение «authenticatedUserID». Если он существует, мы знаем, что пользователь уже
+        успешно вошел в систему. Мы можем продолжать проверять это до истечения срока действия сеанса, когда пользователю
+        потребуется снова войти в систему. Если в сеансе нет «authenticatedUserID», мы
+        знаем, что пользователь не вошел в систему.</li>
+</ol>
+
+<p>Во многих отношениях большая часть контента в этом разделе просто объединяет то, что
+    мы уже изучили, по-разному. Так что это хорошая лакмусовая бумажка вашего понимания
+    и напоминание о некоторых ключевых понятиях.</p>
+<p>Вы узнаете:</p>
+<ul>
+    <li>Как реализовать базовые функции регистрации, входа и выхода для пользователей.</li>
+    <li>Безопасный подход к шифрованию и безопасному хранению паролей пользователей в вашей базе данных
+        с использованием Bcrypt.</li>
+    <li>Надежный и простой подход к проверке того, что пользователь вошел в систему, с использованием
+        промежуточного программного обеспечения и сеансов.</li>
+    <li>Как предотвратить атаки межсайтовой подделки запросов (CSRF).</li>
+</ul>
+
+<h2>Глава 11.1. Настройка маршрутов</h2>
+<p>Давайте начнем этот раздел с добавления пяти новых маршрутов в наше приложение, чтобы оно выглядело следующим образом:</p>
+<table>
+    <tr>
+        <th>Method</th>
+        <th>Шаблон</th>
+        <th>Handler</th>
+        <th>Действие</th>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/</td>
+        <td>home</td>
+        <td>Показать домашнюю страницу</td>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/snippet/:id=1</td>
+        <td>showSnippet</td>
+        <td>Показать определенный фрагмент</td>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/snippet/create</td>
+        <td>createSnippetForm</td>
+        <td>Отображение новой формы фрагмента</td>
+    </tr>  
+    <tr>
+        <td>POST</td>
+        <td>/snippet/create</td>
+        <td>createSnippet</td>
+        <td>Создать новый фрагмент</td>
+    </tr> 
+    <tr>
+        <td>GET</td>
+        <td>/user/signup</td>
+        <td>signupUserForm</td>
+        <td>Отображение формы регистрации пользователя</td>
+    </tr> 
+    <tr>
+        <td>POST</td>
+        <td>/user/signup</td>
+        <td>signupUser</td>
+        <td>Создать нового пользователя</td>
+    </tr>
+    <tr>
+        <td>GET</td>
+        <td>/user/login</td>
+        <td>loginUserForm</td>
+        <td>Отображение формы входа пользователя</td>
+    </tr> 
+    <tr>
+        <td>POST</td>
+        <td>/user/login</td>
+        <td>loginUser</td>
+        <td>Аутентификация и вход пользователя</td>
+    </tr>
+    <tr>
+        <td>POST</td>
+        <td>/user/logout</td>
+        <td>logoutUser</td>
+        <td>Выйти из системы</td>
+    </tr> 
+    <tr>
+        <td>GET</td>
+        <td>/static/</td>
+        <td>http.FileServer</td>
+        <td>Обслуживание статических файлов</td>
+    </tr>  
+</table> 
+<p>Обратите внимание, что новые действия по изменению состояния — SignupUser, LoginUser и logoutUser —
+    все используют запросы POST, а не GET?</p>
+<p>Откройте файл handlers.go и добавьте заполнители для пяти новых функций-обработчиков следующим образом:</p>
+<pre><code>
+File: cmd/web/handlers.go
+
+package main
+...
+
+func (app *application) signupUserForm(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintln(w, "Display the user signup form...")
+}
+
+func (app *application) signupUser(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintln(w, "Create a new user...")
+}
+
+func (app *application) loginUserForm(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintln(w, "Display the user login form...")
+}
+
+func (app *application) loginUser(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintln(w, "Authenticate and login the user...")
+}
+
+func (app *application) logoutUser(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintln(w, "Logout the user...")
+}
+</code></pre>
+<p>Затем, когда это будет сделано, давайте создадим соответствующие маршруты в нашем файле Routes.go:</p>
+<pre><code>
+File: cmd/web/routes.go
+
+package main
+...
+
+func (app *application) routes() http.Handler {
+    standardMiddleware := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
+    dynamicMiddleware := alice.New(app.session.Enable)
+    
+    mux := pat.New()
+    mux.Get("/", dynamicMiddleware.ThenFunc(app.home))
+    mux.Get("/snippet/create", dynamicMiddleware.ThenFunc(app.createSnippetForm))
+    mux.Post("/snippet/create", dynamicMiddleware.ThenFunc(app.createSnippet))
+    mux.Get("/snippet/:id", dynamicMiddleware.ThenFunc(app.showSnippet))
+
+    // Добавьте пять новых маршрутов.
+    mux.Get("/user/signup", dynamicMiddleware.ThenFunc(app.signupUserForm))
+    mux.Post("/user/signup", dynamicMiddleware.ThenFunc(app.signupUser))
+    mux.Get("/user/login", dynamicMiddleware.ThenFunc(app.loginUserForm))
+    mux.Post("/user/login", dynamicMiddleware.ThenFunc(app.loginUser))
+    mux.Post("/user/logout", dynamicMiddleware.ThenFunc(app.logoutUser))
+    
+    fileServer := http.FileServer(http.Dir("./ui/static/"))
+    mux.Get("/static/", http.StripPrefix("/static", fileServer))
+    
+    return standardMiddleware.Then(mux)
+}
+</code></pre>
+<p>Наконец, нам также необходимо обновить файл base.layout.tmpl, чтобы добавить элементы навигации для
+    новых страниц:</p>
+<pre><code>
+File: ui/html/base.layout.tmpl
+
+{{define "base"}}
+
+&lt;!doctype html&gt;
+&lt;html lang='en'&gt;
+    &lt;head&gt;
+        &lt;meta charset='utf-8'&gt;
+        &lt;title&gt;{{template "title" .}} - Snippetbox&lt;/title&gt;
+        &lt;link rel='stylesheet' href='/static/css/main.css'&gt;
+        &lt;link rel='shortcut icon' href='/static/img/favicon.ico' type='image/x-icon'&gt;
+        &lt;link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Ubuntu+Mono:400,700'&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;header&gt;
+            &lt;h1&gt;&lt;a href='/'&gt;Snippetbox&lt;/a&gt;&lt;/h1&gt;
+        &lt;/header&gt;
+        &lt;nav&gt;
+            &lt;!-- Update the navigation to include signup, login and logout links --&gt;
+            &lt;div&gt;
+                &lt;a href='/'&gt;Home&lt;/a&gt;
+                &lt;a href='/snippet/create'&gt;Create snippet&lt;/a&gt;
+            &lt;/div&gt;
+            &lt;div&gt;
+                &lt;a href='/user/signup'&gt;Signup&lt;/a&gt;
+                &lt;a href='/user/login'&gt;Login&lt;/a&gt;
+                &lt;form action='/user/logout' method='POST'&gt;
+                    &lt;button&gt;Logout&lt;/button&gt;
+                &lt;/form&gt;
+            &lt;/div&gt;
+        &lt;/nav&gt;
+        &lt;main&gt;
+            {{with .Flash}}
+            &lt;div class='flash '&gt;{{.}}&lt;/div&gt;
+            {{end}}
+            {{template "main" .}}
+        &lt;/main&gt;
+        {{template "footer" .}}
+            &lt;script src="/static/js/main.js" type="text/javascript"&gt;&lt;/script&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+
+{{end}}
+</code></pre>
+<p>Если хотите, вы можете запустить приложение на этом этапе, и вы должны увидеть новые элементы на
+    панели навигации следующим образом:</p>
+<p><img src="static/images/picture11.1.png"/></p>
+<p>Если вы нажмете на новые ссылки, они должны ответить соответствующим текстовым
+    ответом-заполнителем. Например, если вы нажмете ссылку «Зарегистрироваться», вы должны увидеть ответ, подобный этому:</p>
+<p><img src="static/images/picture12.1.png"/></p>
+
+<h2>Глава 11.2. Создание модели пользователей</h2>
+<p>Теперь, когда маршруты настроены, нам нужно создать новую таблицу базы данных пользователей и
+    модель базы данных для доступа к ней.</p>
+<p>Начните с подключения к MySQL из окна терминала в качестве пользователя root и выполните следующий
+    оператор SQL, чтобы настроить таблицу пользователей:</p>
+
+<pre><code>
+    USE snippetbox;
+    CREATE TABLE users (
+        id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(255) NOT NULL,
+        email VARCHAR(255) NOT NULL,
+        hashed_password CHAR(60) NOT NULL,
+        created DATETIME NOT NULL,
+        active BOOLEAN NOT NULL DEFAULT TRUE
+    );
+
+    ALTER TABLE users ADD CONSTRAINT users_uc_email UNIQUE (email);
+
+</code></pre>
+
+<p>В этой таблице стоит отметить пару вещей:</p>
+<ul>
+    <li>Поле id — это автоинкрементное целочисленное поле и первичный ключ таблицы. Это
+        означает, что значения идентификатора пользователя гарантированно будут уникальными положительными целыми числами (1, 2, 3…
+        и т. д.).</li>
+    <li>Я установил тип поля hashed_password на CHAR(60). Это связано с тем, что мы будем
+        хранить в базе данных хэши паролей пользователей, а не сами пароли
+        , и длина хешированных версий всегда будет ровно 60 символов.</li>
+    <li>Я также добавил ограничение UNIQUE для столбца электронной почты и назвал егоusers_uc_email.
+        Это ограничение гарантирует, что у нас не будет двух пользователей с одинаковым адресом электронной почты.
+        адрес. Если мы попытаемся вставить запись в эту таблицу с повторяющимся адресом электронной почты, MySQL выдаст
+        ошибку ERROR 1062: ER_DUP_ENTRY.</li>
+    <li>Также есть активный столбец, который мы будем использовать для хранения статуса учетной записи пользователя
+        . Если это TRUE, пользователь сможет войти в систему и использовать приложение как
+        обычно. Если это значение ЛОЖЬ, пользователь будет считаться деактивированным и не сможет
+        войти в систему.</li>
+</ul>
+
+Building the Model in Go......................
+
+
+
+
